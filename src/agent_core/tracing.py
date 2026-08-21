@@ -8,6 +8,7 @@ is a real runtime rather than a wrapper around one API call.
 
 from __future__ import annotations
 
+import sys
 import time
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -61,9 +62,15 @@ class Tracer:
         the output pastes cleanly into a README or a terminal screenshot.
         """
         wall = wall_s if wall_s is not None else self.total_duration_s()
+        # "steps" means model calls, matching RunResult.steps and what the
+        # guardrails count. Tool calls are reported separately rather than
+        # folded in, so the header cannot disagree with the budget.
+        model_calls = sum(1 for s in self.spans if s.kind == "model_call")
+        tool_calls = sum(1 for s in self.spans if s.kind == "tool")
         header = (
             f"run {self.run_id[:8]}  goal={self.goal!r}  "
-            f"{len(self.spans)} steps  ${cost_usd:.4f}  {wall:.1f}s"
+            f"{model_calls} steps  {tool_calls} tool calls  "
+            f"${cost_usd:.4f}  {wall:.1f}s"
         )
         lines = [header]
 
@@ -143,3 +150,17 @@ def render_journalled_run(journal: Journal, run_id: str) -> str:
             lines.append(f"{elbow}{'final':<18} {preview!r}")
 
     return "\n".join(lines)
+
+
+def use_utf8_stdout() -> None:
+    """Make stdout able to print the trace tree's box-drawing characters.
+
+    Windows consoles often default to a legacy code page (cp1252, cp1254),
+    which cannot encode the box-drawing characters the tree is built from, and
+    printing one raises UnicodeEncodeError. Reconfiguring to UTF-8 with
+    `errors="replace"` means an exotic console degrades to replacement
+    characters rather than crashing a finished run at the last line.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")

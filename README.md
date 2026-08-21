@@ -64,21 +64,35 @@ User goal
 ToolRegistry  Journal(SQLite)  Tracer(spans)
 ```
 
-A completed run renders as a tree:
+A completed run renders as a tree. This is **real output** from
+`python scripts/render_trace.py --demo`, which runs the actual loop with the
+actual filesystem and shell tools against a scripted model, so it needs no API
+key:
 
 ```
-run 3f2a1b8c  goal='fix the failing test'  6 steps  $0.0312  47.3s
-├─ model_call        1,204 in / 189 out
-├─ tool: list_dir    0.02s  ok
-├─ tool: read_file   0.01s  ok
-├─ model_call        2,890 in / 402 out
-├─ tool: run_command 1.31s  ERROR AssertionError
-├─ model_call        3,110 in / 288 out
-├─ tool: write_file  0.01s  ok
-└─ final             'Fixed: off-by-one in the slice bound'
+run eaee76bb  goal='fix the failing test'  4 steps  4 tool calls  $0.0393  0.1s
+├─ model_call         3,000 in / 189 out
+├─ tool: list_dir     0.00s  ok
+├─ tool: read_file    0.00s  ok
+├─ model_call         2,100 in / 402 out
+├─ tool: run_command  0.05s  ok
+├─ model_call         2,100 in / 288 out
+├─ tool: write_file   0.00s  ok
+├─ model_call         1,200 in / 64 out
+└─ final              'Fixed: the range excluded the final window. Changed `len(...'
 ```
 
-*(Shape shown from `Tracer.render`; the figures above are from a scripted test run, not a live benchmark. A live screenshot goes here once a key is available.)*
+The token counts and the cost come from the scripted completions and a real
+price table, so the dollar figure is arithmetic on made-up token counts, not a
+measured spend. `steps` counts model calls, matching `RunResult.steps` and what
+the guardrails budget against.
+
+A journalled run can be re-rendered later, after the process that ran it has
+exited:
+
+```bash
+uv run agent-core trace <run_id>
+```
 
 ---
 

@@ -30,6 +30,7 @@ from agent_core.tools import (
     register_python_sandbox,
     register_shell_tool,
 )
+from agent_core.tracing import use_utf8_stdout
 
 SYSTEM_PROMPT = """\
 You are a software engineering agent working inside a single directory.
@@ -133,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     trace_parser.add_argument("run_id")
 
     args = parser.parse_args(argv)
+    use_utf8_stdout()
     configure_logging(args.verbose)
 
     if args.command == "runs":
