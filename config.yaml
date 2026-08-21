@@ -1,0 +1,57 @@
+# Model IDs and prices checked against provider docs on 2026-08-22.
+#   Anthropic: https://docs.anthropic.com/en/docs/about-claude/models
+#   OpenAI:    https://developers.openai.com/api/docs/pricing
+#
+# Prices are USD per 1,000,000 tokens. They are here, not in code, because
+# provider pricing changes and a stale constant buried in a module silently
+# corrupts every cost number this repo reports.
+
+models:
+  # The model the agent runs on by default.
+  default:
+    provider: anthropic
+    id: "claude-sonnet-5"
+    max_tokens: 4096
+  # A stronger model, used for benchmark comparison runs.
+  strong:
+    provider: anthropic
+    id: "claude-opus-5"
+    max_tokens: 4096
+  # Cross-provider comparison. See DECISIONS.md 2026-08-22 "OpenAI model choice".
+  compare:
+    provider: openai
+    id: "gpt-5.6-terra"
+    max_tokens: 4096
+
+pricing:
+  # usd per 1M tokens, {input, output}
+  "claude-opus-5":    { input: 5.00, output: 25.00 }
+  "claude-sonnet-5":  { input: 3.00, output: 15.00 }
+  "claude-haiku-4-5": { input: 1.00, output: 5.00 }
+  "gpt-5.6-sol":      { input: 4.00, output: 20.00 }
+  "gpt-5.6-terra":    { input: 2.00, output: 12.00 }
+  "gpt-5.6-luna":     { input: 0.20, output: 1.20 }
+
+guardrails:
+  max_steps: 25
+  max_cost_usd: 1.00
+  max_wall_s: 300.0
+  max_consecutive_tool_failures: 3
+
+context:
+  # Compaction thresholds, as a fraction of the model's usable window.
+  max_tokens: 120000
+  trigger_ratio: 0.8
+  target_ratio: 0.6
+  keep_recent: 6
+
+sandbox:
+  image: "agent-core-sandbox:latest"
+  memory: "512m"
+  cpus: "1"
+  pids_limit: 128
+  timeout_s: 15
+  max_output_bytes: 10240
+
+journal:
+  path: "runs.db"
