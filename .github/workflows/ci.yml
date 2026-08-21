@@ -43,8 +43,11 @@ jobs:
         # the run rather than silently pass. The suite is designed for this.
         run: pytest -q -m "not integration"
 
-      - name: Sandbox tests
-        run: pytest -q -m docker
+      # ubuntu-latest has a working Docker daemon, so the sandbox integration
+      # tests run for real here. This is the only place the isolation claims
+      # are actually verified -- see DECISIONS.md.
+      - name: Sandbox integration tests
+        run: pytest -q -m integration
 
       - name: Benchmark harness smoke test
         run: python scripts/run_benchmark.py --dry-run --repeats 1

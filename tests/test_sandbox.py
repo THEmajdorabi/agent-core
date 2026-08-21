@@ -1,12 +1,28 @@
 """Sandbox tests.
 
-Marked `docker` and excluded from the default run, because they need a live
-daemon. They are not integration tests in the paid-API sense -- they cost
-nothing -- but a developer without Docker should still get a green `make test`.
+Every test that needs a running Docker daemon is marked
+`@pytest.mark.integration` and is therefore excluded from the default
+`make test` run (see `addopts` in pyproject.toml). They cost no money -- unlike
+the paid-API integration tests -- but they need infrastructure the default run
+must not assume, so they share the marker rather than inventing a second one.
+
+Run them with:
+
+    make test-integration        # or: pytest -m integration
+
+The `requires_docker` skipif is belt-and-braces on top of the marker: when you
+*do* ask for the integration suite on a machine with no daemon, a skip that
+names the reason is more useful than a wall of connection errors.
 
 The claims these check are the ones the README makes about isolation. An
 unverified "runs in an isolated container with a 512MB limit" is the kind of
-sentence an interviewer will ask you to prove.
+sentence an interviewer will ask you to prove -- which is why the README says
+plainly that these have not run on the build machine.
+
+One test in this file needs no daemon at all: the check that there is no
+host-Python fallback. It is deliberately left unmarked so it runs in the
+default suite, because it guards the single most important safety property
+here.
 """
 
 from __future__ import annotations
@@ -25,9 +41,10 @@ from agent_core.tools.python_sandbox import (
     verify_memory_limit,
 )
 
-pytestmark = pytest.mark.docker
-
 requires_docker = pytest.mark.skipif(not docker_available(), reason="no reachable Docker daemon")
+
+# Needs a live daemon: excluded from `make test`, runs under `make test-integration`.
+needs_docker = pytest.mark.integration
 
 
 @pytest.fixture
@@ -35,6 +52,7 @@ def sandbox() -> SandboxSettings:
     return load_settings().sandbox
 
 
+@needs_docker
 @requires_docker
 def test_code_runs_and_returns_stdout(sandbox: SandboxSettings) -> None:
     result = run_python_in_docker("print(6 * 7)", sandbox)
@@ -44,6 +62,7 @@ def test_code_runs_and_returns_stdout(sandbox: SandboxSettings) -> None:
     assert result["timed_out"] is False
 
 
+@needs_docker
 @requires_docker
 def test_a_traceback_comes_back_as_stderr_not_an_exception(sandbox: SandboxSettings) -> None:
     result = run_python_in_docker("raise ValueError('boom')", sandbox)
@@ -52,6 +71,7 @@ def test_a_traceback_comes_back_as_stderr_not_an_exception(sandbox: SandboxSetti
     assert "ValueError" in result["stderr"]
 
 
+@needs_docker
 @requires_docker
 def test_the_network_is_unreachable(sandbox: SandboxSettings) -> None:
     """--network none, checked rather than asserted in a README."""
@@ -69,6 +89,7 @@ def test_the_network_is_unreachable(sandbox: SandboxSettings) -> None:
     assert "NETWORK_REACHABLE" not in result["stdout"]
 
 
+@needs_docker
 @requires_docker
 def test_the_root_filesystem_is_read_only(sandbox: SandboxSettings) -> None:
     code = (
@@ -83,6 +104,7 @@ def test_the_root_filesystem_is_read_only(sandbox: SandboxSettings) -> None:
     assert "ROOT_READ_ONLY" in result["stdout"]
 
 
+@needs_docker
 @requires_docker
 def test_workspace_is_writable(sandbox: SandboxSettings) -> None:
     """The tmpfs at /workspace must still work, or nothing useful can run."""
@@ -96,6 +118,7 @@ def test_workspace_is_writable(sandbox: SandboxSettings) -> None:
     assert "ok" in result["stdout"]
 
 
+@needs_docker
 @requires_docker
 def test_the_process_is_not_root(sandbox: SandboxSettings) -> None:
     result = run_python_in_docker("import os; print(os.getuid())", sandbox)
@@ -103,6 +126,7 @@ def test_the_process_is_not_root(sandbox: SandboxSettings) -> None:
     assert result["stdout"].strip() != "0", "sandbox ran as root"
 
 
+@needs_docker
 @requires_docker
 def test_a_hanging_script_is_killed_at_the_timeout(sandbox: SandboxSettings) -> None:
     fast = sandbox.model_copy(update={"timeout_s": 3.0})
@@ -112,6 +136,7 @@ def test_a_hanging_script_is_killed_at_the_timeout(sandbox: SandboxSettings) -> 
     assert result["exit_code"] == 124
 
 
+@needs_docker
 @requires_docker
 def test_output_is_truncated_with_a_marker(sandbox: SandboxSettings) -> None:
     small = sandbox.model_copy(update={"max_output_bytes": 200})
@@ -121,6 +146,7 @@ def test_output_is_truncated_with_a_marker(sandbox: SandboxSettings) -> None:
     assert len(result["stdout"].encode()) < 1000
 
 
+@needs_docker
 @requires_docker
 def test_the_memory_limit_is_actually_enforced(sandbox: SandboxSettings) -> None:
     """Docker silently ignores --memory on some hosts.
@@ -135,6 +161,7 @@ def test_the_memory_limit_is_actually_enforced(sandbox: SandboxSettings) -> None
     )
 
 
+@needs_docker
 @requires_docker
 def test_the_registered_tool_returns_json(sandbox: SandboxSettings) -> None:
     registry = ToolRegistry()

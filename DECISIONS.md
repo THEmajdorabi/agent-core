@@ -288,20 +288,9 @@ Recorded because they affect what this repo can currently prove.
 - **`make` is not installed on this Windows host.** The `Makefile` is written
   and correct; `make setup && make test` has not been executed here. The same
   commands are runnable directly and are listed in the README.
-- **Docker Desktop's Linux engine could not be started.** Root cause found:
-  the WSL 2 kernel was missing (`wsl --status` reported "The WSL 2 kernel file
-  is not found", and `wsl -l -v` listed no distributions). `wsl --update`
-  installed it successfully, but Docker Desktop still reports "Docker Desktop
-  is unable to start" across four restart cycles — it needs a machine reboot to
-  pick up the new kernel, which was out of scope to perform unprompted.
+- **Docker Desktop's Linux engine could not be started.** Diagnosis and the
+  exact errors are in the dedicated entry below.
 
-  Consequence, stated precisely: the eleven sandbox tests are marked
-  `@pytest.mark.docker` and **skip** locally rather than fail, so `make test` is
-  green either way; the one that needs no daemon (no host-Python fallback)
-  runs and passes. CI on `ubuntu-latest` has Docker, builds the sandbox image,
-  and runs all of them for real — so the isolation claims are checked
-  somewhere, just not on this host. Nothing in the README claims a locally
-  verified sandbox property.
 - **Hardware is an RTX 3060 Ti with 8 GB VRAM**, which selects the `cuda_small`
   profile in repos 02 and 04.
 
@@ -324,3 +313,76 @@ of dishonesty as inventing a metric.
 **This is a stated miss against the spec, not a silent one.** The later repos
 commit at finer granularity — module plus its tests — which reaches the range
 naturally for a repo of repo 02's size.
+
+---
+
+## 2026-08-22 — The Docker sandbox is UNVERIFIED on this machine
+
+**State: the sandbox tool and its image are written and complete. Not one of
+its isolation properties has been executed here.** Recorded prominently because
+an unverified security control that looks verified is worse than an absent one.
+
+**What is unverified.** All ten properties `tests/test_sandbox.py` exists to
+check: no network, read-only root, writable `/workspace` tmpfs, non-root user,
+wall-clock timeout kill, output truncation, and — the one Docker most often
+ignores — whether `--memory 512m` is actually enforced.
+
+**What IS verified without a daemon.** One test, deliberately left unmarked so
+it runs in `make test`: `run_python` raises rather than falling back to host
+Python when Docker is missing. That is the property whose failure would be
+dangerous rather than merely unproven.
+
+**Where it does get verified.** CI on `ubuntu-latest` builds the image and runs
+`pytest -m integration`. Until that CI run is green, treat every isolation
+claim in the README as designed-but-untested. The README says so in those
+words.
+
+**Marker choice.** These tests were briefly under their own `docker` marker.
+Collapsed into `integration`, because the default run's rule is "assume no
+external infrastructure" and two markers meant two things to remember to
+exclude. `make test` now deselects them (94 passed, 10 deselected) rather than
+running-then-skipping them.
+
+### The exact failure, for whoever fixes it
+
+Root cause, found and **partly fixed**: WSL 2 was broken. `wsl --status`
+reported *"The WSL 2 kernel file is not found"* and `wsl -l -v` reported
+*"Windows Subsystem for Linux has no installed distributions"*.
+
+`wsl --update` fixed the kernel. WSL now reports healthy:
+
+```
+WSL version: 2.7.12.0
+Kernel version: 6.18.33.2-2
+Windows version: 10.0.19045.6466
+```
+
+Docker Desktop still fails, on every API call, with:
+
+```
+request returned 500 Internal Server Error for API route and version
+http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.51/_ping,
+check if the server supports the requested API version
+```
+
+and the GUI reports *"Docker Desktop is unable to start"*. The client is
+28.4.0, API 1.51, context `desktop-linux`.
+
+The remaining symptom is that `wsl -l -v` **still lists no distributions**:
+Docker Desktop has never provisioned its `docker-desktop` distro. Four
+kill-and-restart cycles of `Docker Desktop.exe` did not change this, which is
+consistent with it needing a reboot to pick up the newly installed kernel.
+
+Most likely fixes, cheapest first:
+
+1. **Reboot**, then start Docker Desktop. WSL 2 was installed under a running
+   session; the kernel driver load usually needs one.
+2. If it still fails, confirm the Windows features are enabled — this needs an
+   **elevated** shell, which is why it could not be checked here:
+   `Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform`
+   and `Microsoft-Windows-Subsystem-Linux`. Both must be `Enabled`.
+   Enable with `dism /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`.
+3. Docker Desktop → Troubleshoot → **Reset to factory defaults**, which forces
+   re-provisioning of the `docker-desktop` WSL distro.
+4. Verify with `docker run --rm hello-world`, then `make test-integration`
+   here, which should turn 10 skips into 10 passes.

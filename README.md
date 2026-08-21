@@ -21,7 +21,7 @@ The unusual part: **a resumed run refuses to re-run a side effect whose outcome 
 | Median steps per solved task | reported | TBD |
 | Median cost per solved task (USD) | reported | TBD |
 | Runs recovered after a forced kill | 10 of 10 | **10 of 10** |
-| Test suite passes with zero paid API calls | required | **94 passed, 10 skipped** |
+| Test suite passes with zero paid API calls | required | **94 passed, 10 deselected** |
 
 Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmark/results.json`.
 
@@ -32,7 +32,7 @@ Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmar
 | All 10 benchmark tasks fail unfixed and pass with a reference fix | [`scripts/verify_benchmark_tasks.py`](scripts/verify_benchmark_tasks.py) | 10 / 10 |
 | Crash-and-resume never repeats a side effect | [`tests/test_crash_resume.py`](tests/test_crash_resume.py) | 10 / 10 kill points |
 | Compaction never splits a `tool_use` from its `tool_result` | [`tests/test_context.py`](tests/test_context.py) | pass |
-| Full test suite, no paid API calls | `make test` | 94 passed, 10 skipped (Docker) |
+| Full test suite, no paid API calls | `make test` | 94 passed, 10 deselected (integration) |
 
 The crash test spawns a real subprocess and kills it uncatchably at ten
 different delays. **Six of the ten land mid-side-effect** — the dangerous case
@@ -193,11 +193,22 @@ properties from inside the container rather than trusting the flags — includin
 `verify_memory_limit()`, because Docker silently ignores `--memory` on some
 hosts and a README claim you cannot demonstrate is worse than no claim.
 
-**These eleven tests have not run on the build machine.** Docker Desktop there
-could not start (a missing WSL 2 kernel, since installed, needing a reboot),
-so they skip. They run for real in CI on `ubuntu-latest`, which builds the
-image and executes them. Treat the isolation properties as CI-verified, not
-locally verified.
+> **The sandbox is unverified.** None of those ten properties has been executed
+> on the build machine: Docker Desktop there cannot start. They are marked
+> `@pytest.mark.integration` and excluded from `make test`, and they run for
+> real in CI on `ubuntu-latest`, which builds the image and executes them.
+> **Until that CI run is green, treat every isolation claim above as designed,
+> not demonstrated.** The exact Docker error and the fix are in
+> [`DECISIONS.md`](DECISIONS.md).
+
+One sandbox test needs no daemon and *does* run in the default suite: the check
+that `run_python` raises rather than silently falling back to host Python. That
+is the property whose failure would be dangerous rather than merely unproven.
+
+```bash
+make test               # 94 passed, 10 deselected
+make test-integration   # the sandbox suite; needs a Docker daemon
+```
 
 There is **no host-Python fallback**. If Docker is missing, `run_python` is not
 registered and calling it raises. A sandbox that quietly stops sandboxing is

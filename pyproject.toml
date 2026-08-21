@@ -54,7 +54,8 @@ warn_unused_ignores = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
-    "integration: hits a live API; excluded from the default `make test` run",
-    "docker: needs a running Docker daemon",
+    # Anything the default run must not assume: a paid API key, or a running
+    # Docker daemon. One marker, so `make test` has exactly one thing to exclude.
+    "integration: needs external infrastructure (paid API or Docker daemon); excluded from `make test`",
 ]
 addopts = "-m 'not integration' --strict-markers"

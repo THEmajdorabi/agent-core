@@ -1,5 +1,5 @@
 # Every target works from a clean clone. `uv` is the only prerequisite.
-.PHONY: setup test lint format typecheck run eval benchmark sandbox-image verify-tasks clean
+.PHONY: setup test test-integration test-all lint format typecheck run eval benchmark sandbox-image verify-tasks clean
 
 PY := uv run
 
@@ -18,7 +18,10 @@ setup:  ## create the venv, install deps, build the sandbox image
 test:  ## run the test suite (no paid API calls)
 	$(PY) pytest -q
 
-test-all:  ## include integration and docker tests
+test-integration:  ## sandbox + live-API tests; needs Docker and/or an API key
+	$(PY) pytest -q -m integration
+
+test-all:  ## everything, including integration
 	$(PY) pytest -q -m ""
 
 lint:
