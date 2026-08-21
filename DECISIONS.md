@@ -284,9 +284,19 @@ Recorded because they affect what this repo can currently prove.
 - **`make` is not installed on this Windows host.** The `Makefile` is written
   and correct; `make setup && make test` has not been executed here. The same
   commands are runnable directly and are listed in the README.
-- **Docker Desktop's Linux engine was dead on arrival**: the WSL 2 kernel was
-  missing. Fixed with `wsl --update`. Sandbox tests are marked `@pytest.mark.docker`
-  and skip cleanly when no daemon is reachable, so the default test run is
-  unaffected either way.
+- **Docker Desktop's Linux engine could not be started.** Root cause found:
+  the WSL 2 kernel was missing (`wsl --status` reported "The WSL 2 kernel file
+  is not found", and `wsl -l -v` listed no distributions). `wsl --update`
+  installed it successfully, but Docker Desktop still reports "Docker Desktop
+  is unable to start" across four restart cycles — it needs a machine reboot to
+  pick up the new kernel, which was out of scope to perform unprompted.
+
+  Consequence, stated precisely: the eleven sandbox tests are marked
+  `@pytest.mark.docker` and **skip** locally rather than fail, so `make test` is
+  green either way; the one that needs no daemon (no host-Python fallback)
+  runs and passes. CI on `ubuntu-latest` has Docker, builds the sandbox image,
+  and runs all of them for real — so the isolation claims are checked
+  somewhere, just not on this host. Nothing in the README claims a locally
+  verified sandbox property.
 - **Hardware is an RTX 3060 Ti with 8 GB VRAM**, which selects the `cuda_small`
   profile in repos 02 and 04.

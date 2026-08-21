@@ -176,6 +176,12 @@ properties from inside the container rather than trusting the flags — includin
 `verify_memory_limit()`, because Docker silently ignores `--memory` on some
 hosts and a README claim you cannot demonstrate is worse than no claim.
 
+**These eleven tests have not run on the build machine.** Docker Desktop there
+could not start (a missing WSL 2 kernel, since installed, needing a reboot),
+so they skip. They run for real in CI on `ubuntu-latest`, which builds the
+image and executes them. Treat the isolation properties as CI-verified, not
+locally verified.
+
 There is **no host-Python fallback**. If Docker is missing, `run_python` is not
 registered and calling it raises. A sandbox that quietly stops sandboxing is
 worse than one that is plainly unavailable.
