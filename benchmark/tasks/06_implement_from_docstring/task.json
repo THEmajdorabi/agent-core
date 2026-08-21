@@ -1,0 +1,5 @@
+{
+  "id": "06_implement_from_docstring",
+  "title": "Implement a function from its docstring and tests",
+  "goal": "chunker.py raises NotImplementedError. Implement it so test_solution.py passes."
+}

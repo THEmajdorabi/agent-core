@@ -1,0 +1,5 @@
+{
+  "id": "10_mutable_default",
+  "title": "A mutable default argument bug",
+  "goal": "The tests in test_solution.py fail. Fix accumulator.py so they pass."
+}

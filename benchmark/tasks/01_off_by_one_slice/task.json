@@ -1,0 +1,5 @@
+{
+  "id": "01_off_by_one_slice",
+  "title": "Off-by-one in a slice bound",
+  "goal": "The tests in test_solution.py fail. Fix window.py so they pass."
+}

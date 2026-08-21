@@ -1,0 +1,5 @@
+{
+  "id": "08_timezone_bug",
+  "title": "A timezone bug in a date calculation",
+  "goal": "The tests in test_solution.py fail with a TypeError about naive and aware datetimes. Fix deadline.py so they pass."
+}

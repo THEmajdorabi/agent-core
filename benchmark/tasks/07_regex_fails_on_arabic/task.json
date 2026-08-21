@@ -1,0 +1,5 @@
+{
+  "id": "07_regex_fails_on_arabic",
+  "title": "A regex that fails on Arabic input",
+  "goal": "The Arabic tests in test_solution.py fail. Fix tokenize_module.py so all of them pass."
+}

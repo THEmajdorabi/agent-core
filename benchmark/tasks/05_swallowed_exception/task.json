@@ -1,0 +1,5 @@
+{
+  "id": "05_swallowed_exception",
+  "title": "Exception handling that swallows an error",
+  "goal": "The tests in test_solution.py fail. Fix config_loader.py so they pass."
+}

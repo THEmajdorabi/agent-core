@@ -1,0 +1,5 @@
+{
+  "id": "04_import_cycle",
+  "title": "An import cycle between two modules",
+  "goal": "Importing these modules raises ImportError because of a circular import. Fix it so the tests in test_solution.py pass, keeping both functions working."
+}

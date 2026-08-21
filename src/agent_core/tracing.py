@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from agent_core.journal import Journal
 
 
 @dataclass
@@ -98,3 +101,45 @@ class Tracer:
             return f"{'final':<18} {preview!r}"
 
         return f"{span.name:<18} {span.duration_s():.2f}s"
+
+
+def render_journalled_run(journal: "Journal", run_id: str) -> str:
+    """Rebuild a trace tree from the journal, after the process that ran it exited.
+
+    The live Tracer holds spans in memory; this reconstructs an equivalent view
+    from what was persisted, so `agent-core trace <run_id>` works on a run from
+    last week.
+    """
+    row = journal.run_row(run_id)
+    if row is None:
+        return f"no journalled run with id {run_id!r}"
+
+    steps = journal.steps(run_id)
+    totals = journal.totals(run_id)
+    elapsed = (row["ended"] or row["started"]) - row["started"]
+
+    lines = [
+        f"run {run_id[:8]}  goal={row['goal']!r}  "
+        f"{sum(1 for s in steps if s.kind == 'model_call')} steps  "
+        f"${totals['cost_usd']:.4f}  {elapsed:.1f}s  [{row['status']}]"
+    ]
+
+    for index, step in enumerate(steps):
+        elbow = "└─ " if index == len(steps) - 1 else "├─ "
+        if step.kind == "model_call":
+            lines.append(
+                f"{elbow}{'model_call':<18} {step.input_tokens:,} in / {step.output_tokens:,} out"
+            )
+        elif step.kind == "tool_call_started":
+            marker = "idempotent" if step.idempotent else "non-idempotent"
+            lines.append(f"{elbow}{'tool: ' + step.payload['name']:<18} started ({marker})")
+        elif step.kind == "tool_result":
+            status = "ERROR" if step.payload.get("is_error") else "ok"
+            lines.append(f"{elbow}{'  result':<18} {status}")
+        elif step.kind == "compaction":
+            lines.append(f"{elbow}{'compaction':<18} transcript summarised")
+        elif step.kind == "final":
+            preview = str(step.payload.get("text", "")).replace("\n", " ")[:60]
+            lines.append(f"{elbow}{'final':<18} {preview!r}")
+
+    return "\n".join(lines)

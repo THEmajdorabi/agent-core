@@ -1,0 +1,5 @@
+{
+  "id": "02_wrong_default_argument",
+  "title": "A wrong default argument breaks a test",
+  "goal": "The tests in test_solution.py fail. Fix rounding.py so they pass."
+}

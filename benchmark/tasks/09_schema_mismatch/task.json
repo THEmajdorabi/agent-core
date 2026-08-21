@@ -1,0 +1,5 @@
+{
+  "id": "09_schema_mismatch",
+  "title": "A JSON schema mismatch between two modules",
+  "goal": "producer.py and consumer.py disagree about the result dict's field names, so the test raises KeyError. Fix the mismatch so test_solution.py passes. Do not change the test."
+}
