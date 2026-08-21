@@ -92,11 +92,14 @@ receives a failed `tool_result` saying the outcome is unknown.
 
 **Why:** always re-running charges the card twice. Never re-running strands a
 run that died during a harmless read. The tool itself is the only thing that
-knows which it is, so the flag belongs on the tool. Measured in
-`tests/test_crash_resume.py`: killing the worker at 0.6s and 1.3s lands
-mid-`record`, where the side effect already happened but no result was
-journalled — exactly the dangerous case — and at 0.9s and 1.7s lands
-mid-`peek`, which is re-run safely.
+knows which it is, so the flag belongs on the tool.
+
+**Measured** in `tests/test_crash_resume.py` across ten kill points: six land
+mid-`record` (non-idempotent, side effect already applied, result never
+journalled — the dangerous case) and four land mid-`peek` (idempotent). All
+ten resume with no repeated side effect, and the four idempotent orphans are
+re-run exactly once, which is what stops the test from being satisfied by a
+resume that does nothing.
 
 ---
 
@@ -110,8 +113,9 @@ TerminateProcess on Windows) at four different delays.
 **Why:** an injected exception still unwinds the stack and runs `finally`
 blocks, so it tests the cleanup path rather than its absence. The whole claim
 is that the journal survives a process that got no chance to tidy up, and
-only an uncatchable kill tests that. Confirmed the kills land in different
-places rather than all at one point.
+only an uncatchable kill tests that. Confirmed by instrumenting the journal
+after each kill: the ten delays produce six non-idempotent orphans and four
+idempotent ones, rather than all landing at the same point.
 
 ---
 

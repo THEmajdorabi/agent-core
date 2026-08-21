@@ -80,8 +80,12 @@ def main() -> int:
     # short sample over-reports tokens per character. Reported as-is rather
     # than corrected, because that overhead is also present in real use.
     print("\n--- result ---")
-    print(f"measured  CHARS_PER_TOKEN_ARABIC = {arabic_ratio:.2f}  (currently {CHARS_PER_TOKEN_ARABIC})")
-    print(f"measured  CHARS_PER_TOKEN_LATIN  = {latin_ratio:.2f}  (currently {CHARS_PER_TOKEN_LATIN})")
+    print(
+        f"measured  CHARS_PER_TOKEN_ARABIC = {arabic_ratio:.2f}  (currently {CHARS_PER_TOKEN_ARABIC})"
+    )
+    print(
+        f"measured  CHARS_PER_TOKEN_LATIN  = {latin_ratio:.2f}  (currently {CHARS_PER_TOKEN_LATIN})"
+    )
 
     if arabic_ratio >= latin_ratio:
         print(

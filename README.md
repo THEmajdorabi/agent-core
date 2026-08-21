@@ -20,8 +20,8 @@ The unusual part: **a resumed run refuses to re-run a side effect whose outcome 
 | Tasks solved on the built-in benchmark | ≥ 7 of 10 | TBD |
 | Median steps per solved task | reported | TBD |
 | Median cost per solved task (USD) | reported | TBD |
-| Runs recovered after a forced kill | 10 of 10 | **8 of 8 kill points** (see below) |
-| Test suite passes with zero paid API calls | required | **88 passed, 10 skipped** |
+| Runs recovered after a forced kill | 10 of 10 | **10 of 10** |
+| Test suite passes with zero paid API calls | required | **94 passed, 10 skipped** |
 
 Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmark/results.json`.
 
@@ -30,13 +30,16 @@ Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmar
 | Check | Script | Result |
 |---|---|---|
 | All 10 benchmark tasks fail unfixed and pass with a reference fix | [`scripts/verify_benchmark_tasks.py`](scripts/verify_benchmark_tasks.py) | 10 / 10 |
-| Crash-and-resume never repeats a side effect | [`tests/test_crash_resume.py`](tests/test_crash_resume.py) | 4 kill points × 2 properties, all pass |
+| Crash-and-resume never repeats a side effect | [`tests/test_crash_resume.py`](tests/test_crash_resume.py) | 10 / 10 kill points |
 | Compaction never splits a `tool_use` from its `tool_result` | [`tests/test_context.py`](tests/test_context.py) | pass |
-| Full test suite, no paid API calls | `make test` | 88 passed, 10 skipped (Docker) |
+| Full test suite, no paid API calls | `make test` | 94 passed, 10 skipped (Docker) |
 
-The crash test spawns a real subprocess and kills it uncatchably at four
-different delays. Two of those land mid-side-effect — the dangerous case where
-the write already happened but its result was never journalled.
+The crash test spawns a real subprocess and kills it uncatchably at ten
+different delays. **Six of the ten land mid-side-effect** — the dangerous case
+where the write already happened but its result was never journalled. All ten
+resume without repeating a side effect, and the four that orphan an
+*idempotent* call do re-run it, so the test cannot be passed by a resume that
+simply refuses to do anything.
 
 ---
 

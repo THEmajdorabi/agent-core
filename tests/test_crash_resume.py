@@ -5,8 +5,10 @@ TerminateProcess on Windows -- `Popen.kill()` is both). A try/finally cleanup
 path would not be exercised by anything gentler, and the whole point is that
 the journal survives a process that got no chance to tidy up.
 
-The kill happens at four different delays, so the interruption lands at
-different points in the loop rather than always at the same one.
+The kill happens at ten different delays, so the interruption lands at ten
+different points in the loop rather than always at the same one. Roughly half
+land mid-`record`, where the side effect has already happened but its result
+was never journalled -- the case the idempotency rule exists for.
 """
 
 from __future__ import annotations
@@ -69,7 +71,9 @@ def resume_run(journal_db: Path, counter: Path, run_id: str) -> None:
     agent.resume(run_id)
 
 
-@pytest.mark.parametrize("kill_after_s", [0.6, 0.9, 1.3, 1.7])
+# Ten kill points spanning the run, so the interruption lands at ten
+# different places in the loop rather than repeatedly at one.
+@pytest.mark.parametrize("kill_after_s", [0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3])
 def test_kill_and_resume_never_repeats_a_side_effect(tmp_path: Path, kill_after_s: float) -> None:
     journal_db = tmp_path / "runs.db"
     counter = tmp_path / "counter.txt"
