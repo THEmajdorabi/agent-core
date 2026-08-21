@@ -94,10 +94,7 @@ def main() -> int:
         )
 
     # The heuristic must not under-estimate, or compaction fires too late.
-    for label, samples, current in (
-        ("Arabic", ARABIC_SAMPLES, CHARS_PER_TOKEN_ARABIC),
-        ("Latin", LATIN_SAMPLES, CHARS_PER_TOKEN_LATIN),
-    ):
+    for label, samples in (("Arabic", ARABIC_SAMPLES), ("Latin", LATIN_SAMPLES)):
         blob = " ".join(samples)
         estimated = estimate_tokens_heuristic(blob)
         actual = provider.count_tokens([Message.user_text(blob)], "")
