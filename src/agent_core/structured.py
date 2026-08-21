@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from typing import TypeVar
 
 import structlog
 from pydantic import BaseModel, ValidationError
@@ -23,8 +22,6 @@ from agent_core.errors import StructuredOutputError
 from agent_core.providers.base import Message, Provider
 
 log = structlog.get_logger(__name__)
-
-T = TypeVar("T", bound=BaseModel)
 
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL)
 
@@ -61,7 +58,7 @@ def extract_json(text: str) -> str:
     return text.strip()
 
 
-def structured_call(
+def structured_call[T: BaseModel](
     provider: Provider,
     prompt: str,
     schema: type[T],

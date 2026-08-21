@@ -33,9 +33,7 @@ def transcript() -> list[Message]:
                 {"type": "tool_use", "id": "t2", "name": "read_file", "input": {"path": "a.py"}},
             ],
         ),
-        Message.tool_results(
-            [ToolResult("t1", "f a.py"), ToolResult("t2", "def f(): pass")]
-        ),
+        Message.tool_results([ToolResult("t1", "f a.py"), ToolResult("t2", "def f(): pass")]),
         Message(
             role="assistant",
             content=[{"type": "tool_use", "id": "t3", "name": "run_python", "input": {}}],
@@ -60,16 +58,12 @@ def test_compaction_never_splits_a_tool_use_from_its_result() -> None:
     """The property, checked directly on the compacted transcript."""
     messages = transcript()
     provider = ScriptedProvider([completion(text="SUMMARY: read a.py, ran the test.")])
-    compactor = Compactor(
-        provider, max_tokens=10, trigger_ratio=0.0, keep_recent=2, max_passes=1
-    )
+    compactor = Compactor(provider, max_tokens=10, trigger_ratio=0.0, keep_recent=2, max_passes=1)
 
     compacted, changed = compactor.maybe_compact(messages)
 
     assert changed
-    tool_use_ids = {
-        b["id"] for m in compacted for b in m.content if b.get("type") == "tool_use"
-    }
+    tool_use_ids = {b["id"] for m in compacted for b in m.content if b.get("type") == "tool_use"}
     tool_result_ids = {
         b["tool_use_id"] for m in compacted for b in m.content if b.get("type") == "tool_result"
     }
@@ -90,9 +84,7 @@ def test_nothing_happens_below_the_trigger() -> None:
 def test_recent_messages_are_kept() -> None:
     messages = transcript()
     provider = ScriptedProvider([completion(text="SUMMARY")])
-    compactor = Compactor(
-        provider, max_tokens=10, trigger_ratio=0.0, keep_recent=3, max_passes=1
-    )
+    compactor = Compactor(provider, max_tokens=10, trigger_ratio=0.0, keep_recent=3, max_passes=1)
 
     compacted, _ = compactor.maybe_compact(messages)
 
@@ -139,9 +131,7 @@ def test_compaction_refuses_when_the_only_cut_in_range_would_split_a_tool_call()
     assert settled_boundaries(messages) == [0, 2, 4]
 
     provider = ScriptedProvider([])  # raises if a summary is even attempted
-    compactor = Compactor(
-        provider, max_tokens=10, trigger_ratio=0.0, keep_recent=3, max_passes=1
-    )
+    compactor = Compactor(provider, max_tokens=10, trigger_ratio=0.0, keep_recent=3, max_passes=1)
 
     compacted, changed = compactor.maybe_compact(messages)
 

@@ -110,7 +110,10 @@ class Agent:
         """
         span = tracer.span(call.name, "tool", tool_use_id=call.id)
 
-        if self.guardrails.tool_allowlist is not None and call.name not in self.guardrails.tool_allowlist:
+        if (
+            self.guardrails.tool_allowlist is not None
+            and call.name not in self.guardrails.tool_allowlist
+        ):
             span.end(error="not allowlisted")
             return ToolResult(
                 tool_use_id=call.id,
@@ -161,9 +164,7 @@ class Agent:
             )
 
         span.end()
-        return ToolResult(
-            tool_use_id=call.id, content=truncate(str(value), MAX_TOOL_RESULT_BYTES)
-        )
+        return ToolResult(tool_use_id=call.id, content=truncate(str(value), MAX_TOOL_RESULT_BYTES))
 
     def _run_tools(self, calls: list[ToolCall], tracer: Tracer, run_id: str) -> list[ToolResult]:
         """Run every requested tool concurrently, preserving call order.

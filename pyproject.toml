@@ -37,6 +37,10 @@ packages = ["src/agent_core"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# The benchmark tasks contain deliberate bugs -- a mutable default argument, a
+# swallowed exception. Linting them would flag exactly what the agent is meant
+# to find, and "fixing" them would destroy the benchmark.
+extend-exclude = ["benchmark/tasks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

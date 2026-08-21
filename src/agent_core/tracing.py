@@ -103,7 +103,7 @@ class Tracer:
         return f"{span.name:<18} {span.duration_s():.2f}s"
 
 
-def render_journalled_run(journal: "Journal", run_id: str) -> str:
+def render_journalled_run(journal: Journal, run_id: str) -> str:
     """Rebuild a trace tree from the journal, after the process that ran it exited.
 
     The live Tracer holds spans in memory; this reconstructs an equivalent view

@@ -17,13 +17,13 @@ import time
 from pathlib import Path
 
 import pytest
+from conftest import completion
 
 from agent_core.agent import Agent
 from agent_core.config import Price, Settings
 from agent_core.journal import Journal
 from agent_core.providers.replay import ScriptedProvider
 from agent_core.registry import ToolRegistry
-from conftest import completion
 
 WORKER = Path(__file__).parent / "crash_worker.py"
 
@@ -70,9 +70,7 @@ def resume_run(journal_db: Path, counter: Path, run_id: str) -> None:
 
 
 @pytest.mark.parametrize("kill_after_s", [0.6, 0.9, 1.3, 1.7])
-def test_kill_and_resume_never_repeats_a_side_effect(
-    tmp_path: Path, kill_after_s: float
-) -> None:
+def test_kill_and_resume_never_repeats_a_side_effect(tmp_path: Path, kill_after_s: float) -> None:
     journal_db = tmp_path / "runs.db"
     counter = tmp_path / "counter.txt"
     counter.write_text("", encoding="utf-8")

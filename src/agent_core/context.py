@@ -123,7 +123,9 @@ class PinnedFacts:
         if not self.facts:
             return None
         body = "\n".join(f"- {fact}" for fact in self.facts)
-        return Message.user_text(f"PINNED FACTS (carried across compaction, do not discard):\n{body}")
+        return Message.user_text(
+            f"PINNED FACTS (carried across compaction, do not discard):\n{body}"
+        )
 
 
 class Compactor:
@@ -190,9 +192,7 @@ class Compactor:
             working = compacted
             changed = True
             tokens = self.count_tokens(working, system)
-            log.info(
-                "compactor.pass", pass_number=pass_number + 1, tokens=tokens, target=target
-            )
+            log.info("compactor.pass", pass_number=pass_number + 1, tokens=tokens, target=target)
             if tokens <= target:
                 break
 

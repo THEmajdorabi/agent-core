@@ -1,0 +1,19 @@
+services:
+  agent-core:
+    build: .
+    environment:
+      # Read from the host environment or a .env file. Never hardcoded here.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AGENT_CORE_JOURNAL_PATH: /data/runs.db
+    volumes:
+      # The sandbox tool shells out to `docker run`, so it needs the host
+      # daemon. This grants the container root-equivalent access to the host,
+      # which is acceptable for a local demo and would not be in production.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - agent-runs:/data
+      - ./workspace:/workspace
+    working_dir: /workspace
+
+volumes:
+  agent-runs:

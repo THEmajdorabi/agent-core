@@ -68,7 +68,7 @@ def windows(items, size):
         result.append(items[start : start + size])
     return result
 ''',
-            "test_solution.py": '''from window import windows
+            "test_solution.py": """from window import windows
 
 
 def test_windows_covers_the_whole_sequence():
@@ -81,7 +81,7 @@ def test_single_window_when_size_equals_length():
 
 def test_empty_when_size_exceeds_length():
     assert windows([1, 2], 3) == []
-''',
+""",
         },
         "The tests in test_solution.py fail. Fix window.py so they pass.",
     ),
@@ -100,7 +100,7 @@ def round_money(amount, places=0):
     """
     return round(amount, places)
 ''',
-            "test_solution.py": '''from rounding import round_money
+            "test_solution.py": """from rounding import round_money
 
 
 def test_defaults_to_two_places():
@@ -110,7 +110,7 @@ def test_defaults_to_two_places():
 def test_explicit_places_still_work():
     assert round_money(3.14159, 3) == 3.142
     assert round_money(3.7, 0) == 4
-''',
+""",
         },
         "The tests in test_solution.py fail. Fix rounding.py so they pass.",
     ),
@@ -126,7 +126,7 @@ def mean(values):
     """Return the arithmetic mean, or 0.0 for an empty sequence."""
     return sum(values) / len(values)
 ''',
-            "test_solution.py": '''from stats import mean
+            "test_solution.py": """from stats import mean
 
 
 def test_mean_of_values():
@@ -135,7 +135,7 @@ def test_mean_of_values():
 
 def test_mean_of_empty_is_zero():
     assert mean([]) == 0.0
-''',
+""",
         },
         "The tests in test_solution.py fail. Fix stats.py so they pass.",
     ),
@@ -169,7 +169,7 @@ def serialize_user(user):
 def is_user(value):
     return isinstance(value, User)
 ''',
-            "test_solution.py": '''def test_user_serializes():
+            "test_solution.py": """def test_user_serializes():
     from models import User
 
     assert User("majd").to_json() == {"name": "majd"}
@@ -181,7 +181,7 @@ def test_is_user_still_works():
 
     assert is_user(User("x")) is True
     assert is_user("not a user") is False
-''',
+""",
         },
         "Importing these modules raises ImportError because of a circular import. "
         "Fix it so the tests in test_solution.py pass, keeping both functions working.",
@@ -208,7 +208,7 @@ def load_config(path):
     except Exception:
         return {}
 ''',
-            "test_solution.py": '''import json
+            "test_solution.py": """import json
 
 import pytest
 
@@ -230,7 +230,7 @@ def test_malformed_json_raises(tmp_path):
     path.write_text("{not json", encoding="utf-8")
     with pytest.raises(ValueError):
         load_config(path)
-''',
+""",
         },
         "The tests in test_solution.py fail. Fix config_loader.py so they pass.",
     ),
@@ -253,7 +253,7 @@ def chunk_by_sentences(text, max_chars):
     """
     raise NotImplementedError
 ''',
-            "test_solution.py": '''from chunker import chunk_by_sentences
+            "test_solution.py": """from chunker import chunk_by_sentences
 
 
 def test_empty():
@@ -275,7 +275,7 @@ def test_never_splits_a_sentence():
 def test_handles_question_and_exclamation():
     text = "Why? Because! Done."
     assert chunk_by_sentences(text, 14) == ["Why? Because!", "Done."]
-''',
+""",
         },
         "chunker.py raises NotImplementedError. Implement it so test_solution.py passes.",
     ),
@@ -300,7 +300,7 @@ def words(text):
     """
     return WORD.findall(text)
 ''',
-            "test_solution.py": '''from tokenize_module import words
+            "test_solution.py": """from tokenize_module import words
 
 
 def test_latin():
@@ -318,7 +318,7 @@ def test_mixed_script_and_digits():
         "the",
         "rule",
     ]
-''',
+""",
         },
         "The Arabic tests in test_solution.py fail. Fix tokenize.py so all of them pass. "
         "Note the test imports `tokenize_module`, so the module must be importable "
@@ -341,7 +341,7 @@ def hours_remaining(deadline_utc):
     """
     return (deadline_utc - datetime.utcnow()).total_seconds() / 3600
 ''',
-            "test_solution.py": '''from datetime import UTC, datetime, timedelta
+            "test_solution.py": """from datetime import UTC, datetime, timedelta
 
 from deadline import hours_remaining
 
@@ -354,7 +354,7 @@ def test_future_deadline_is_positive():
 def test_past_deadline_is_negative():
     earlier = datetime.now(UTC) - timedelta(hours=2)
     assert -2.1 < hours_remaining(earlier) < -1.9
-''',
+""",
         },
         "The tests in test_solution.py fail with a TypeError about naive and aware "
         "datetimes. Fix deadline.py so they pass.",
@@ -384,7 +384,7 @@ def format_results(results):
         lines.append(f"article {result['article_no']} ({result['relevance']:.2f})")
     return lines
 ''',
-            "test_solution.py": '''from consumer import format_results
+            "test_solution.py": """from consumer import format_results
 from producer import search
 
 
@@ -393,7 +393,7 @@ def test_pipeline_end_to_end():
         "article 74 (0.91)",
         "article 75 (0.88)",
     ]
-''',
+""",
         },
         "producer.py and consumer.py disagree about the result dict's field names, "
         "so the test raises KeyError. Fix the mismatch so test_solution.py passes. "
@@ -415,7 +415,7 @@ def add_item(item, basket=[]):
     basket.append(item)
     return basket
 ''',
-            "test_solution.py": '''from accumulator import add_item
+            "test_solution.py": """from accumulator import add_item
 
 
 def test_each_call_starts_fresh():
@@ -428,7 +428,7 @@ def test_explicit_basket_accumulates():
     add_item("a", basket)
     add_item("b", basket)
     assert basket == ["a", "b"]
-''',
+""",
         },
         "The tests in test_solution.py fail. Fix accumulator.py so they pass.",
     ),

@@ -116,7 +116,9 @@ def main(argv: list[str] | None = None) -> int:
     run_parser = subparsers.add_parser("run", help="run an agent against a goal")
     run_parser.add_argument("goal")
     run_parser.add_argument("--workdir", default=".", help="directory the agent may touch")
-    run_parser.add_argument("--model", default="default", help="a key under `models:` in config.yaml")
+    run_parser.add_argument(
+        "--model", default="default", help="a key under `models:` in config.yaml"
+    )
     run_parser.add_argument("--allow-shell", action="store_true", help="register run_command")
 
     resume_parser = subparsers.add_parser("resume", help="continue an interrupted run")
@@ -141,7 +143,10 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         for run_id in unfinished:
             row = journal.run_row(run_id)
-            print(f"{run_id}  {row['goal']}")
+            # run_row can return None if the runs row was deleted while its
+            # steps survived. Skipping is better than crashing the listing.
+            if row is not None:
+                print(f"{run_id}  {row['goal']}")
         return 0
 
     if args.command == "trace":
@@ -152,10 +157,7 @@ def main(argv: list[str] | None = None) -> int:
 
     agent = build_agent(Path(args.workdir).resolve(), args.model, args.allow_shell, args.verbose)
 
-    if args.command == "run":
-        result = agent.run(args.goal)
-    else:
-        result = agent.resume(args.run_id)
+    result = agent.run(args.goal) if args.command == "run" else agent.resume(args.run_id)
 
     print(result.trace)
     print()

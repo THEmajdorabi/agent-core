@@ -27,7 +27,9 @@ def completion_to_dict(completion: Completion) -> dict[str, Any]:
     """Serialise a Completion for a fixture file, dropping the raw SDK object."""
     return {
         "text": completion.text,
-        "tool_calls": [{"id": c.id, "name": c.name, "input": c.input} for c in completion.tool_calls],
+        "tool_calls": [
+            {"id": c.id, "name": c.name, "input": c.input} for c in completion.tool_calls
+        ],
         "stop_reason": completion.stop_reason,
         "input_tokens": completion.input_tokens,
         "output_tokens": completion.output_tokens,

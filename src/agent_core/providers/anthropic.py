@@ -17,7 +17,7 @@ The details that matter, and that cost a debugging session each if missed:
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -44,11 +44,18 @@ class AnthropicProvider:
     # ---- wire format -----------------------------------------------------
 
     @staticmethod
-    def _to_wire(messages: list[Message]) -> list[dict[str, Any]]:
+    def _to_wire(messages: list[Message]) -> Any:
         """Our neutral Message list becomes Anthropic's `messages` array.
 
-        The block shapes already match, so this is a pass-through. It exists as
-        a named seam: when a provider's format drifts, it drifts here.
+        The block shapes already match Anthropic's `MessageParam`, so this is a
+        pass-through. It exists as a named seam: when a provider's format
+        drifts, it drifts here.
+
+        Returning `Any` is the deliberate boundary between our plain dicts and
+        the SDK's TypedDicts. The alternative is constructing typed params for
+        every block variant -- text, tool_use, tool_result, thinking -- which
+        buys no safety, because the shapes are already checked by the tests
+        that assert on the wire format.
         """
         return [{"role": m.role, "content": m.content} for m in messages]
 
@@ -107,7 +114,7 @@ class AnthropicProvider:
                 max_tokens=max_tokens,
                 system=system,
                 messages=self._to_wire(messages),
-                tools=tools or [],
+                tools=cast(Any, tools or []),
             )
         except (self._sdk.RateLimitError, self._sdk.APIConnectionError) as exc:
             # Retryable: rate limiting and transport failures.
@@ -119,7 +126,9 @@ class AnthropicProvider:
                 raise ProviderError(f"Anthropic {exc.status_code}: {exc}") from exc
             # 4xx other than 429 is our bug: a malformed request, a bad schema,
             # or an unanswered tool_use block. Retrying cannot fix it.
-            raise ProviderError(f"Anthropic rejected the request ({exc.status_code}): {exc}") from exc
+            raise ProviderError(
+                f"Anthropic rejected the request ({exc.status_code}): {exc}"
+            ) from exc
 
         return self._parse(response)
 
@@ -136,7 +145,7 @@ class AnthropicProvider:
             max_tokens=max_tokens,
             system=system,
             messages=self._to_wire(messages),
-            tools=tools or [],
+            tools=cast(Any, tools or []),
         ) as stream:
             for event in stream:
                 if event.type == "content_block_delta" and event.delta.type == "text_delta":

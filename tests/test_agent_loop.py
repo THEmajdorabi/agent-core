@@ -287,7 +287,9 @@ def test_step_limit_stops_the_run_and_returns_a_partial(settings) -> None:
 
 def test_cost_is_computed_from_the_price_table(settings) -> None:
     # settings prices "scripted" at $1.00/1M input, $2.00/1M output.
-    provider = ScriptedProvider([completion(text="hi", input_tokens=1_000_000, output_tokens=500_000)])
+    provider = ScriptedProvider(
+        [completion(text="hi", input_tokens=1_000_000, output_tokens=500_000)]
+    )
     agent = build(provider, ToolRegistry(), settings)
     result = agent.run("cost me")
 

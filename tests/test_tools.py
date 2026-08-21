@@ -11,7 +11,6 @@ from agent_core.tools.filesystem import PathJail, register_filesystem_tools
 from agent_core.tools.http import host_is_allowed
 from agent_core.tools.shell import register_shell_tool
 
-
 # ---- path jail ----------------------------------------------------------
 
 
@@ -38,7 +37,9 @@ def test_jail_refuses_an_absolute_path(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="outside the permitted root"):
         # An absolute path passed to `/` replaces the left operand entirely,
         # which is exactly how a naive jail gets escaped.
-        jail.resolve("C:/Windows/System32/drivers/etc/hosts" if Path("C:/").exists() else "/etc/passwd")
+        jail.resolve(
+            "C:/Windows/System32/drivers/etc/hosts" if Path("C:/").exists() else "/etc/passwd"
+        )
 
 
 def test_jail_refuses_deep_traversal(tmp_path: Path) -> None:
@@ -95,9 +96,7 @@ def test_shell_reports_exit_code_and_output(tmp_path: Path) -> None:
     registry = ToolRegistry()
     register_shell_tool(registry, tmp_path)
 
-    output = registry.get("run_command").fn(
-        command=f'"{sys.executable}" -c "print(41 + 1)"'
-    )
+    output = registry.get("run_command").fn(command=f'"{sys.executable}" -c "print(41 + 1)"')
     assert "exit_code: 0" in output
     assert "42" in output
 

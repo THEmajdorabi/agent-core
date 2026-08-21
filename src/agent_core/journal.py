@@ -186,9 +186,7 @@ class Journal:
     def completed_tool_call_ids(self, run_id: str) -> set[str]:
         """Call ids that have a journalled result, and so must never re-run."""
         return {
-            step.payload["tool_use_id"]
-            for step in self.steps(run_id)
-            if step.kind == "tool_result"
+            step.payload["tool_use_id"] for step in self.steps(run_id) if step.kind == "tool_result"
         }
 
     def orphaned_tool_calls(self, run_id: str) -> list[Step]:

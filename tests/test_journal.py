@@ -9,6 +9,7 @@ row twice -- is the bug this design exists to prevent.
 
 from __future__ import annotations
 
+import contextlib
 from pathlib import Path
 
 from conftest import call, completion
@@ -22,7 +23,9 @@ from agent_core.registry import ToolRegistry
 def test_steps_are_appended_and_read_back(tmp_path: Path) -> None:
     journal = Journal(tmp_path / "runs.db")
     journal.start_run("r1", "do a thing")
-    journal.append("r1", "model_call", {"content": []}, input_tokens=10, output_tokens=5, cost_usd=0.1)
+    journal.append(
+        "r1", "model_call", {"content": []}, input_tokens=10, output_tokens=5, cost_usd=0.1
+    )
     journal.append("r1", "final", {"text": "done"})
     journal.finish_run("r1", "complete")
 
@@ -55,7 +58,9 @@ def test_every_step_is_committed_immediately(tmp_path: Path) -> None:
     assert len(observer.steps("r1")) == 1
 
 
-def build_agent(registry: ToolRegistry, provider: ScriptedProvider, journal: Journal, settings) -> Agent:
+def build_agent(
+    registry: ToolRegistry, provider: ScriptedProvider, journal: Journal, settings
+) -> Agent:
     return Agent(
         provider=provider,
         registry=registry,
@@ -84,10 +89,10 @@ def test_resume_does_not_rerun_a_completed_tool_call(tmp_path: Path, settings) -
     provider = ScriptedProvider([completion(tool_calls=[call("append_row", "c1")])])
     agent = build_agent(registry, provider, journal, settings)
     journal.start_run("r1", "append a row")
-    try:
+    # The scripted provider runs out, which is how this test simulates the
+    # process dying mid-run.
+    with contextlib.suppress(AssertionError):
         agent._loop("r1", "append a row", [])
-    except AssertionError:
-        pass  # provider ran out, simulating the process dying mid-run
 
     assert counter.read_text(encoding="utf-8") == "x"
 
@@ -126,9 +131,7 @@ def test_resume_reruns_an_orphaned_idempotent_call(tmp_path: Path, settings) -> 
     assert calls == ["read"], "an idempotent orphan should be re-executed exactly once"
 
 
-def test_resume_refuses_to_rerun_an_orphaned_non_idempotent_call(
-    tmp_path: Path, settings
-) -> None:
+def test_resume_refuses_to_rerun_an_orphaned_non_idempotent_call(tmp_path: Path, settings) -> None:
     """The headline behaviour: unknown outcome is reported, not repeated."""
     calls: list[str] = []
     registry = ToolRegistry()

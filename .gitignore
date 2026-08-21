@@ -16,3 +16,4 @@ models/
 .coverage
 htmlcov/
 benchmark/workdir/
+benchmark/results.dry-run.json

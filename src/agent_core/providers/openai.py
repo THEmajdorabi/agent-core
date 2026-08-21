@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -60,7 +60,12 @@ class OpenAIProvider:
 
     @staticmethod
     def _to_wire(messages: list[Message], system: str) -> list[dict[str, Any]]:
-        """Flatten our block-based transcript into OpenAI's message list."""
+        """Flatten our block-based transcript into OpenAI's message list.
+
+        Returns plain dicts; they are cast to the SDK's TypedDicts at the call
+        site. Keeping this function dict-typed is what lets the tests assert on
+        the exact wire shape.
+        """
         wire: list[dict[str, Any]] = [{"role": "system", "content": system}]
 
         for message in messages:
@@ -159,8 +164,8 @@ class OpenAIProvider:
             response = self._client.chat.completions.create(
                 model=self.model_id,
                 max_completion_tokens=max_tokens,
-                messages=self._to_wire(messages, system),
-                tools=self.to_openai_tools(tools) or None,
+                messages=cast(Any, self._to_wire(messages, system)),
+                tools=cast(Any, self.to_openai_tools(tools) or None),
             )
         except (self._sdk.RateLimitError, self._sdk.APIConnectionError) as exc:
             log.warning("openai.retryable", error=str(exc))
@@ -182,11 +187,11 @@ class OpenAIProvider:
         stream = self._client.chat.completions.create(
             model=self.model_id,
             max_completion_tokens=max_tokens,
-            messages=self._to_wire(messages, system),
-            tools=self.to_openai_tools(tools) or None,
+            messages=cast(Any, self._to_wire(messages, system)),
+            tools=cast(Any, self.to_openai_tools(tools) or None),
             stream=True,
         )
-        for chunk in stream:
+        for chunk in cast(Any, stream):
             delta = chunk.choices[0].delta
             if delta.content:
                 yield Delta(type="text", text=delta.content)

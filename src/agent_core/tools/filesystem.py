@@ -31,9 +31,7 @@ class PathJail:
         """
         candidate = (self.root / relative).resolve()
         if candidate != self.root and self.root not in candidate.parents:
-            raise ValueError(
-                f"path {relative!r} resolves outside the permitted root {self.root}"
-            )
+            raise ValueError(f"path {relative!r} resolves outside the permitted root {self.root}")
         return candidate
 
 
@@ -74,8 +72,6 @@ def register_filesystem_tools(registry: ToolRegistry, root: str | Path) -> PathJ
         entries = sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name))
         if not entries:
             return "(empty directory)"
-        return "\n".join(
-            f"{'d' if entry.is_dir() else 'f'} {entry.name}" for entry in entries
-        )
+        return "\n".join(f"{'d' if entry.is_dir() else 'f'} {entry.name}" for entry in entries)
 
     return jail

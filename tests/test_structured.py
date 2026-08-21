@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import pytest
+from conftest import completion
 from pydantic import BaseModel
 
 from agent_core.errors import StructuredOutputError
 from agent_core.providers.replay import ScriptedProvider
 from agent_core.structured import extract_json, structured_call
-from conftest import completion
 
 
 class Verdict(BaseModel):
