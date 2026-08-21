@@ -62,7 +62,19 @@ def build_input_schema(fn: Callable[..., Any]) -> dict[str, Any]:
     signature = inspect.signature(fn)
     # include_extras keeps Annotated metadata alive, which is where the
     # per-argument descriptions come from.
-    hints = get_type_hints(fn, include_extras=True)
+    try:
+        hints = get_type_hints(fn, include_extras=True)
+    except NameError as exc:
+        # Under `from __future__ import annotations` every annotation is a
+        # string, resolved here against the function's module globals. A type
+        # defined inside another function is in neither globals nor locals, so
+        # it cannot be resolved. The raw NameError names the type but not the
+        # cause, which sends you looking in the wrong place.
+        raise NameError(
+            f"cannot resolve a type annotation on tool {fn.__name__!r}: {exc}. "
+            f"Types used in tool signatures must be importable at module level, "
+            f"not defined inside a function."
+        ) from exc
 
     fields: dict[str, Any] = {}
     for param_name, param in signature.parameters.items():
