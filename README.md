@@ -22,6 +22,7 @@ The unusual part: **a resumed run refuses to re-run a side effect whose outcome 
 | Median cost per solved task (USD) | reported | TBD |
 | Runs recovered after a forced kill | 10 of 10 | **10 of 10** |
 | Test suite passes with zero paid API calls | required | **94 passed, 10 deselected** |
+| Sandbox isolation properties verified | all | **10 of 10** |
 
 Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmark/results.json`.
 
@@ -32,7 +33,8 @@ Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmar
 | All 10 benchmark tasks fail unfixed and pass with a reference fix | [`scripts/verify_benchmark_tasks.py`](scripts/verify_benchmark_tasks.py) | 10 / 10 |
 | Crash-and-resume never repeats a side effect | [`tests/test_crash_resume.py`](tests/test_crash_resume.py) | 10 / 10 kill points |
 | Compaction never splits a `tool_use` from its `tool_result` | [`tests/test_context.py`](tests/test_context.py) | pass |
-| Full test suite, no paid API calls | `make test` | 94 passed, 10 deselected (integration) |
+| Full test suite, no paid API calls | `make test` | 94 passed, 10 deselected |
+| Sandbox isolation, incl. an enforced 512 MiB cap | [`tests/test_sandbox.py`](tests/test_sandbox.py) | 10 / 10 (`make test-integration`) |
 
 The crash test spawns a real subprocess and kills it uncatchably at ten
 different delays. **Six of the ten land mid-side-effect** — the dangerous case
@@ -189,26 +191,43 @@ Model-written Python runs in Docker with `--network none`, `--memory 512m`,
 `--cpus 1`, `--read-only`, `--pids-limit 128` and a non-root user.
 
 [`tests/test_sandbox.py`](tests/test_sandbox.py) verifies each of those
-properties from inside the container rather than trusting the flags — including
-`verify_memory_limit()`, because Docker silently ignores `--memory` on some
-hosts and a README claim you cannot demonstrate is worse than no claim.
+properties **from inside the container** rather than trusting that the flags
+did anything. All ten pass on this host:
 
-> **The sandbox is unverified.** None of those ten properties has been executed
-> on the build machine: Docker Desktop there cannot start. They are marked
-> `@pytest.mark.integration` and excluded from `make test`, and they run for
-> real in CI on `ubuntu-latest`, which builds the image and executes them.
-> **Until that CI run is green, treat every isolation claim above as designed,
-> not demonstrated.** The exact Docker error and the fix are in
-> [`DECISIONS.md`](DECISIONS.md).
+| Property | Flag | What the test observes |
+|---|---|---|
+| No network | `--network none` | connecting to `1.1.1.1:53` raises `OSError` |
+| Read-only root | `--read-only` | appending to `/etc/passwd` raises `OSError` |
+| Writable scratch | `--tmpfs /workspace` | write-then-read round-trips |
+| Non-root | `--user 65534:65534` | `os.getuid()` → `65534` |
+| Process cap | `--pids-limit 128` | `/sys/fs/cgroup/pids.max` → `128` |
+| **Memory cap** | `--memory 512m` | `/sys/fs/cgroup/memory.max` → **536870912** = exactly 512 MiB; a 2 GB allocation is **OOM-killed, exit 137** |
+| Timeout kill | wall-clock | `sleep(60)` under a 3s limit → `timed_out=True`, exit 124 |
+| Output truncation | 10 KB cap | 5,000 chars under a 200-byte cap returns a truncation marker |
+
+The memory row is the one worth checking rather than asserting: **Docker
+silently ignores `--memory` on hosts without the right cgroup support.** This
+host runs cgroups v2, the cgroup file reports the exact byte count, and the
+kernel kills a process that exceeds it. `verify_memory_limit()` reproduces it
+and `make setup` runs it. Had it come back unenforced, the right fix would have
+been to delete the claim, not the test.
 
 One sandbox test needs no daemon and *does* run in the default suite: the check
 that `run_python` raises rather than silently falling back to host Python. That
-is the property whose failure would be dangerous rather than merely unproven.
+is the property whose failure would be dangerous rather than merely unproven,
+so it must not hide behind infrastructure that might be absent.
 
 ```bash
 make test               # 94 passed, 10 deselected
-make test-integration   # the sandbox suite; needs a Docker daemon
+make test-integration   # 10 passed  (needs a Docker daemon)
+pytest -q -m ""         # 104 passed (everything)
 ```
+
+Getting here needed three fixes on the build machine — a missing WSL 2 kernel,
+a bad Docker Desktop install, and, the actual blocker, **hardware
+virtualization disabled in firmware**. That last one is in
+[`DECISIONS.md`](DECISIONS.md) along with the diagnostic mistake that made it
+take longer than it should have.
 
 There is **no host-Python fallback**. If Docker is missing, `run_python` is not
 registered and calling it raises. A sandbox that quietly stops sandboxing is

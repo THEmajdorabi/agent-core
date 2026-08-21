@@ -316,73 +316,96 @@ naturally for a repo of repo 02's size.
 
 ---
 
-## 2026-08-22 — The Docker sandbox is UNVERIFIED on this machine
+## 2026-08-22 — Sandbox isolation: measured, and what it cost to get there
 
-**State: the sandbox tool and its image are written and complete. Not one of
-its isolation properties has been executed here.** Recorded prominently because
-an unverified security control that looks verified is worse than an absent one.
+**State: all ten isolation properties are verified on this machine.**
+`make test-integration` → **10 passed**. Full suite → **104 passed**.
 
-**What is unverified.** All ten properties `tests/test_sandbox.py` exists to
-check: no network, read-only root, writable `/workspace` tmpfs, non-root user,
-wall-clock timeout kill, output truncation, and — the one Docker most often
-ignores — whether `--memory 512m` is actually enforced.
+This entry previously read "the sandbox is UNVERIFIED" and told the reader to
+treat every isolation claim as designed-but-untested. It is kept in place,
+rewritten, rather than deleted, because the debugging path is the interesting
+part.
 
-**What IS verified without a daemon.** One test, deliberately left unmarked so
-it runs in `make test`: `run_python` raises rather than falling back to host
-Python when Docker is missing. That is the property whose failure would be
-dangerous rather than merely unproven.
+### What is now measured
 
-**Where it does get verified.** CI on `ubuntu-latest` builds the image and runs
-`pytest -m integration`. Until that CI run is green, treat every isolation
-claim in the README as designed-but-untested. The README says so in those
-words.
+| Property | Flag | Evidence |
+|---|---|---|
+| No network | `--network none` | `socket.create_connection(('1.1.1.1', 53))` raises `OSError` inside the container |
+| Read-only root | `--read-only` | appending to `/etc/passwd` raises `OSError` |
+| Writable scratch | `--tmpfs /workspace` | write-then-read round-trips |
+| Non-root | `--user 65534:65534` | `os.getuid()` → `65534` |
+| Process cap | `--pids-limit 128` | `/sys/fs/cgroup/pids.max` → `128` |
+| **Memory cap** | `--memory 512m` | `/sys/fs/cgroup/memory.max` → **536870912** (exactly 512 MiB); a process allocating 2 GB is **OOM-killed with exit code 137** |
+| Timeout kill | wall-clock | a `sleep(60)` under a 3s limit returns `timed_out=True`, exit 124 |
+| Output truncation | 10 KB cap | 5,000 chars under a 200-byte cap comes back with a truncation marker |
 
-**Marker choice.** These tests were briefly under their own `docker` marker.
-Collapsed into `integration`, because the default run's rule is "assume no
-external infrastructure" and two markers meant two things to remember to
-exclude. `make test` now deselects them (94 passed, 10 deselected) rather than
-running-then-skipping them.
+**The memory limit is genuinely enforced on this host.** This was the one worth
+checking rather than asserting: Docker silently ignores `--memory` on hosts
+without the right cgroup support, and the README claims a specific number. Here
+the host runs **cgroups v2** inside the `docker-desktop` WSL2 VM, the cgroup
+file reports the exact byte count, and the kernel OOM-kills a process that
+exceeds it. `verify_memory_limit()` in `python_sandbox.py` reproduces this, and
+`make setup` runs it.
 
-### The exact failure, for whoever fixes it
+Had it come back unenforced, the correct response was to delete the claim from
+the README, not the test.
 
-Root cause, found and **partly fixed**: WSL 2 was broken. `wsl --status`
-reported *"The WSL 2 kernel file is not found"* and `wsl -l -v` reported
-*"Windows Subsystem for Linux has no installed distributions"*.
+### The debugging path, and a diagnostic mistake worth recording
 
-`wsl --update` fixed the kernel. WSL now reports healthy:
-
-```
-WSL version: 2.7.12.0
-Kernel version: 6.18.33.2-2
-Windows version: 10.0.19045.6466
-```
-
-Docker Desktop still fails, on every API call, with:
+Docker Desktop's engine 500'd on every call, including `_ping`:
 
 ```
 request returned 500 Internal Server Error for API route and version
-http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.51/_ping,
-check if the server supports the requested API version
+http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.51/_ping
 ```
 
-and the GUI reports *"Docker Desktop is unable to start"*. The client is
-28.4.0, API 1.51, context `desktop-linux`.
+Three things were wrong, discovered in the wrong order:
 
-The remaining symptom is that `wsl -l -v` **still lists no distributions**:
-Docker Desktop has never provisioned its `docker-desktop` distro. Four
-kill-and-restart cycles of `Docker Desktop.exe` did not change this, which is
-consistent with it needing a reboot to pick up the newly installed kernel.
+1. **The WSL 2 kernel was missing.** `wsl --status` reported *"The WSL 2 kernel
+   file is not found"*. Fixed with `wsl --update` → WSL 2.7.12.0, kernel
+   6.18.33.2-2.
+2. **Docker Desktop 28.4.0 was in a bad state.** Uninstalled and reinstalled
+   from the CLI with `--backend=wsl-2` → Docker 29.7.2.
+3. **Hardware virtualization was disabled in firmware.** This was the actual
+   blocker, and it made the first two fixes insufficient on their own:
 
-Most likely fixes, cheapest first:
+   ```
+   Hyper-V Requirements: VM Monitor Mode Extensions: Yes
+                         Virtualization Enabled In Firmware: No
+                         Second Level Address Translation: Yes
+   ```
 
-1. **Reboot**, then start Docker Desktop. WSL 2 was installed under a running
-   session; the kernel driver load usually needs one.
-2. If it still fails, confirm the Windows features are enabled — this needs an
-   **elevated** shell, which is why it could not be checked here:
-   `Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform`
-   and `Microsoft-Windows-Subsystem-Linux`. Both must be `Enabled`.
-   Enable with `dism /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart`.
-3. Docker Desktop → Troubleshoot → **Reset to factory defaults**, which forces
-   re-provisioning of the `docker-desktop` WSL distro.
-4. Verify with `docker run --rm hello-world`, then `make test-integration`
-   here, which should turn 10 skips into 10 passes.
+   Fixed by enabling **SVM Mode** in the UEFI (AMD Ryzen 5 5600X on an ASUS
+   PRIME B550M-A). After that, `wsl -l -v` finally showed `docker-desktop
+   Running` and the engine came up.
+
+**The mistake: the reinstall was done before running `systeminfo`.** One cheap
+read-only command would have identified a firmware setting as the root cause
+and saved a 659 MB download, an uninstall/reinstall cycle, and two elevation
+prompts. The general lesson, which generalises past Docker: *when a
+virtualization stack fails to start, check the firmware capability bit before
+touching the software stack.* An earlier diagnosis in this file predicted "a
+reboot should fix it" — that was wrong, and it is left recorded rather than
+quietly corrected.
+
+Useful detail for anyone hitting this: `wsl --install --no-distribution`
+returns *"The operation completed successfully"* even when virtualization is
+disabled in firmware and no VM can actually boot. It is not a health check.
+
+Also note `systeminfo` stops printing the *"Hyper-V Requirements"* block once a
+hypervisor is running — it prints *"A hypervisor has been detected"* instead. So
+the absence of that block after the fix is itself confirmation.
+
+### Marker choice
+
+These tests were briefly under their own `docker` marker. Collapsed into
+`integration`, because the default run's rule is "assume no external
+infrastructure" and two markers meant two things to remember to exclude.
+`make test` deselects them (**94 passed, 10 deselected**); `make
+test-integration` runs them (**10 passed**); `pytest -m ""` runs everything
+(**104 passed**).
+
+One test stays deliberately unmarked and in the default suite: `run_python`
+must raise rather than fall back to host Python when Docker is missing. That is
+the property whose failure would be *dangerous* rather than merely unproven, so
+it must not hide behind infrastructure that might be absent.
