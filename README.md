@@ -10,21 +10,38 @@ The unusual part: **a resumed run refuses to re-run a side effect whose outcome 
 
 ## Numbers
 
-> **Status: not yet measured.** The benchmark harness is complete and runs end
-> to end, but no `ANTHROPIC_API_KEY` was available in the build environment, so
-> no live run has happened. Every figure below is `TBD` rather than a guess.
-> Reproduce with `make benchmark` once a key is set.
+Measured on 2026-08-22 with `claude-sonnet-5`, 10 tasks x 3 repeats.
+Reproduce with `make benchmark`; raw data in `benchmark/results.json`.
 
 | Metric | Target | Measured |
 |---|---|---|
-| Tasks solved on the built-in benchmark | ≥ 7 of 10 | TBD |
-| Median steps per solved task | reported | TBD |
-| Median cost per solved task (USD) | reported | TBD |
+| Tasks solved on the built-in benchmark | >= 7 of 10 | **10 of 10** |
+| Attempt solve rate | reported | **100%** (30/30) |
+| Median steps per solved task | reported | **5** |
+| Median cost per solved task | reported | **$0.0308** |
+| Median wall time per solved task | reported | **12.4s** |
+| Total cost of the full benchmark | reported | **$1.06** |
 | Runs recovered after a forced kill | 10 of 10 | **10 of 10** |
 | Test suite passes with zero paid API calls | required | **94 passed, 10 deselected** |
 | Sandbox isolation properties verified | all | **10 of 10** |
 
-Produced by [`scripts/run_benchmark.py`](scripts/run_benchmark.py) → `benchmark/results.json`.
+### Per task
+
+| Task | Solved | Median steps | Median cost | Median wall |
+|---|---|---|---|---|
+| `01_off_by_one_slice` | 3/3 | 8 | $0.0523 | 30.8s |
+| `02_wrong_default_argument` | 3/3 | 4 | $0.0216 | 9.2s |
+| `03_missing_edge_case` | 3/3 | 5 | $0.0255 | 9.7s |
+| `04_import_cycle` | 3/3 | 6 | $0.0372 | 14.2s |
+| `05_swallowed_exception` | 3/3 | 4 | $0.0261 | 11.0s |
+| `06_implement_from_docstring` | 3/3 | 5 | $0.0492 | 23.5s |
+| `07_regex_fails_on_arabic` | 3/3 | 6 | $0.0386 | 19.8s |
+| `08_timezone_bug` | 3/3 | 5 | $0.0294 | 11.0s |
+| `09_schema_mismatch` | 3/3 | 6 | $0.0387 | 17.0s |
+| `10_mutable_default` | 3/3 | 4 | $0.0218 | 8.8s |
+
+Every task was solved on every one of three attempts. The verdict is `check.sh`
+exiting 0, never the agent's own claim that it fixed something.
 
 ### What *is* measured
 
