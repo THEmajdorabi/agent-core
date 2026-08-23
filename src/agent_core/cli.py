@@ -61,7 +61,7 @@ def build_agent(workdir: Path, model_key: str, allow_shell: bool, verbose: bool)
     """Assemble an agent: provider, tools, guardrails, journal, compactor."""
     settings = load_settings()
     spec = settings.models[model_key]
-    provider = build_provider(spec.provider, spec.id)
+    provider = build_provider(spec.provider, spec.id, spec.reasoning_effort)
 
     registry = ToolRegistry()
     register_filesystem_tools(registry, workdir)

@@ -22,6 +22,9 @@ models:
     provider: openai
     id: "gpt-5.6-terra"
     max_tokens: 4096
+    # Required: /v1/chat/completions refuses function tools unless reasoning
+    # effort is "none" on this model. See ModelSpec.reasoning_effort.
+    reasoning_effort: "none"
 
 pricing:
   # usd per 1M tokens, {input, output}

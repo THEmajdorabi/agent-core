@@ -67,7 +67,7 @@ def measure(provider, samples: list[str], label: str) -> float:
 def main() -> int:
     settings = load_settings()
     spec = settings.models["default"]
-    provider = build_provider(spec.provider, spec.id)
+    provider = build_provider(spec.provider, spec.id, spec.reasoning_effort)
 
     print(f"Counting with {spec.id} via the provider's count_tokens endpoint.\n")
 

@@ -22,6 +22,14 @@ class ModelSpec(BaseModel):
     provider: str
     id: str
     max_tokens: int = 4096
+    # OpenAI reasoning models default to a non-zero reasoning effort, and
+    # `/v1/chat/completions` REJECTS function tools while that is set:
+    #   "Function tools with reasoning_effort are not supported for
+    #    gpt-5.6-terra in /v1/chat/completions. To use function tools, use
+    #    /v1/responses or set reasoning_effort to 'none'."
+    # A tool-calling loop therefore has to say "none" explicitly. It is per
+    # model because it is a property of the model, not of this repo.
+    reasoning_effort: str | None = None
 
 
 class Price(BaseModel):

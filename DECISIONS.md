@@ -409,3 +409,38 @@ One test stays deliberately unmarked and in the default suite: `run_python`
 must raise rather than fall back to host Python when Docker is missing. That is
 the property whose failure would be *dangerous* rather than merely unproven, so
 it must not hide behind infrastructure that might be absent.
+
+## 2026-08-23 — `reasoning_effort` is per model, and omitted unless configured
+
+**What happened:** running the benchmark against `gpt-5.6-terra` — the
+cross-provider comparison model this repo has always declared — failed on the
+first model call:
+
+```
+Function tools with reasoning_effort are not supported for gpt-5.6-terra in
+/v1/chat/completions. To use function tools, use /v1/responses or set
+reasoning_effort to 'none'.
+```
+
+The repo was never *setting* `reasoning_effort`. The model defaults to a
+non-zero effort server-side, and `/v1/chat/completions` refuses function tools
+while that is set. A tool-calling loop therefore has to say `"none"` explicitly,
+which means the code has to be able to say anything at all.
+
+**Chosen:** `ModelSpec.reasoning_effort`, declared per model in `config.yaml`,
+threaded through `build_provider` as a keyword with a `None` default, and
+**omitted from the request entirely** when unset.
+
+**Why per model and not a constant.** It is a property of the model, not of
+this repo. `claude-*` does not take the parameter, and older OpenAI models
+reject it outright — so the only safe default is not to send it.
+
+**Why a keyword with a default:** every existing `build_provider(provider, id)`
+call site keeps working, and the three that hold a `ModelSpec` now pass the
+field through. No signature broke.
+
+**How it was found:** repo 03 wrote a suite that runs these ten tasks through
+the OpenAI model. The Anthropic path had been exercised for weeks and the
+OpenAI path had been declared in `config.yaml` and never run against a
+tool-calling loop. A configuration that has never been executed is a
+description, not a configuration.

@@ -93,7 +93,7 @@ def build_agent(workdir: Path, model_key: str) -> Agent:
     register_shell_tool(registry, workdir, timeout_s=60)
 
     return Agent(
-        provider=build_provider(spec.provider, spec.id),
+        provider=build_provider(spec.provider, spec.id, spec.reasoning_effort),
         registry=registry,
         system=SYSTEM_PROMPT.format(python=sys.executable),
         guardrails=Guardrails(

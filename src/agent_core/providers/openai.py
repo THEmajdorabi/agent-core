@@ -32,10 +32,15 @@ log = structlog.get_logger(__name__)
 class OpenAIProvider:
     """Provider implementation backed by the official `openai` SDK."""
 
-    def __init__(self, model_id: str, timeout_s: float = 120.0) -> None:
+    def __init__(
+        self, model_id: str, timeout_s: float = 120.0, reasoning_effort: str | None = None
+    ) -> None:
         import openai
 
         self.model_id = model_id
+        # Sent only when configured. See ModelSpec.reasoning_effort for the
+        # 400 this exists to avoid.
+        self.reasoning_effort = reasoning_effort
         self._sdk = openai
         self._client = openai.OpenAI(
             api_key=require_env("OPENAI_API_KEY"), timeout=timeout_s, max_retries=0
@@ -138,6 +143,15 @@ class OpenAIProvider:
 
     # ---- Provider protocol ----------------------------------------------
 
+    def _extra(self) -> dict[str, Any]:
+        """Per-model request parameters, omitted entirely when unset.
+
+        Omitted rather than defaulted: a model that does not know
+        `reasoning_effort` rejects the request for sending it, so the only safe
+        default is not to send it at all.
+        """
+        return {"reasoning_effort": self.reasoning_effort} if self.reasoning_effort else {}
+
     def complete(
         self,
         messages: list[Message],
@@ -166,6 +180,7 @@ class OpenAIProvider:
                 max_completion_tokens=max_tokens,
                 messages=cast(Any, self._to_wire(messages, system)),
                 tools=cast(Any, self.to_openai_tools(tools) or None),
+                **self._extra(),
             )
         except (self._sdk.RateLimitError, self._sdk.APIConnectionError) as exc:
             log.warning("openai.retryable", error=str(exc))
@@ -190,6 +205,7 @@ class OpenAIProvider:
             messages=cast(Any, self._to_wire(messages, system)),
             tools=cast(Any, self.to_openai_tools(tools) or None),
             stream=True,
+            **self._extra(),
         )
         for chunk in cast(Any, stream):
             delta = chunk.choices[0].delta

@@ -20,7 +20,7 @@ __all__ = [
 ]
 
 
-def build_provider(provider: str, model_id: str) -> Provider:
+def build_provider(provider: str, model_id: str, reasoning_effort: str | None = None) -> Provider:
     """Construct a provider by name.
 
     Imports are deferred so that using one provider does not require the
@@ -33,5 +33,5 @@ def build_provider(provider: str, model_id: str) -> Provider:
     if provider == "openai":
         from agent_core.providers.openai import OpenAIProvider
 
-        return OpenAIProvider(model_id)
+        return OpenAIProvider(model_id, reasoning_effort=reasoning_effort)
     raise ValueError(f"unknown provider {provider!r}. Expected 'anthropic' or 'openai'.")
