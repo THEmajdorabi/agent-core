@@ -2,8 +2,8 @@
 
 Every test that needs a running Docker daemon is marked
 `@pytest.mark.integration` and is therefore excluded from the default
-`make test` run (see `addopts` in pyproject.toml). They cost no money -- unlike
-the paid-API integration tests -- but they need infrastructure the default run
+`make test` run (see `addopts` in pyproject.toml). They cost no money, unlike
+the paid-API integration tests, but they need infrastructure the default run
 must not assume, so they share the marker rather than inventing a second one.
 
 Run them with:
@@ -16,7 +16,7 @@ names the reason is more useful than a wall of connection errors.
 
 The claims these check are the ones the README makes about isolation. An
 unverified "runs in an isolated container with a 512MB limit" is the kind of
-sentence an interviewer will ask you to prove -- which is why the README says
+sentence an interviewer will ask you to prove, which is why the README says
 plainly that these have not run on the build machine.
 
 One test in this file needs no daemon at all: the check that there is no

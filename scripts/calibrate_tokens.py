@@ -1,7 +1,7 @@
 """Calibrate the character-per-token heuristic against real provider counts.
 
 `context.py` falls back to a character heuristic when the provider's counter is
-unreachable. Its two constants -- one for Arabic, one for Latin -- are reasoned
+unreachable. Its two constants, one for Arabic, one for Latin, are reasoned
 starting values, and a reasoned value is not a measured one.
 
 This measures both against Anthropic's `count_tokens` endpoint on real text and

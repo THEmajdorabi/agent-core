@@ -4,8 +4,8 @@ A task that already passes measures nothing, and a task with no fix measures
 nothing either. This script checks both ends against a copy of each task, so
 the originals stay broken:
 
-  1. run check.sh on the pristine task -- it must FAIL
-  2. apply the reference fix -- check.sh must now PASS
+  1. run check.sh on the pristine task, it must FAIL
+  2. apply the reference fix, check.sh must now PASS
 
 The reference fixes live here rather than in the task folders, because a fix
 sitting next to the bug is a fix the agent can read.

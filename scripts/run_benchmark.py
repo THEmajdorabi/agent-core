@@ -2,7 +2,7 @@
 
 Every task is copied to a scratch directory before the agent touches it, so
 the task folders stay pristine and repeats are independent. `check.sh` decides
-whether a task was solved -- the agent's own claim that it fixed something is
+whether a task was solved: the agent's own claim that it fixed something is
 not evidence.
 
 Writes benchmark/results.json and prints the markdown table.

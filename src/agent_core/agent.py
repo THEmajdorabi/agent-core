@@ -131,7 +131,7 @@ class Agent:
             # Each tool gets its own single-worker pool purely to enforce a
             # timeout: ThreadPoolExecutor.result(timeout=) is the only portable
             # way to bound a synchronous call. The worker itself is not
-            # cancelled -- Python cannot interrupt arbitrary code -- so a tool
+            # cancelled. Python cannot interrupt arbitrary code, so a tool
             # that hangs leaks a thread. Tools doing real I/O set their own
             # socket timeouts; run_python enforces its limit in Docker.
             with ThreadPoolExecutor(max_workers=1) as pool:
@@ -235,7 +235,7 @@ class Agent:
     def _replay(self, run_id: str, goal: str) -> list[Message]:
         """Rebuild the message list from journalled steps.
 
-        Orphaned tool calls -- started, never finished -- are resolved here:
+        Orphaned tool calls, started, never finished, are resolved here:
         idempotent tools are re-executed, everything else is replayed as a
         failed result saying the outcome is unknown, and the model decides how
         to proceed.

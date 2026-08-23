@@ -3,8 +3,8 @@
 The property that matters: after an interruption, a tool call whose outcome
 was never recorded is re-run only when the tool declared itself idempotent.
 Everything else is reported to the model as an unknown outcome. Silently
-re-running a non-idempotent side effect -- charging a card twice, appending a
-row twice -- is the bug this design exists to prevent.
+re-running a non-idempotent side effect, charging a card twice, appending a
+row twice, is the bug this design exists to prevent.
 """
 
 from __future__ import annotations

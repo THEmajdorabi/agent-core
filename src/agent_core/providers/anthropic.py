@@ -53,7 +53,7 @@ class AnthropicProvider:
 
         Returning `Any` is the deliberate boundary between our plain dicts and
         the SDK's TypedDicts. The alternative is constructing typed params for
-        every block variant -- text, tool_use, tool_result, thinking -- which
+        every block variant, text, tool_use, tool_result, thinking, which
         buys no safety, because the shapes are already checked by the tests
         that assert on the wire format.
         """

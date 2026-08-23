@@ -3,9 +3,7 @@
 Every entry is a real choice between alternatives, the option rejected, and
 why. A failed approach that was removed still gets an entry.
 
----
-
-## 2026-08-22 — Schema generation: dynamic pydantic model vs hand-rolled mapper
+## 2026-08-22. Schema generation: dynamic pydantic model vs hand-rolled mapper
 
 **Chose:** build a pydantic model from the function signature with
 `pydantic.create_model`, fed by `inspect.signature` and
@@ -14,7 +12,7 @@ why. A failed approach that was removed still gets an entry.
 **Rejected:** a hand-written type-to-JSON-Schema mapper.
 
 **Why:** the hand-rolled version is fifteen lines for `str`/`int`/`bool` and
-then grows forever — unions, `Literal`, `Enum`, nested models, `list[Model]`,
+then grows forever, unions, `Literal`, `Enum`, nested models, `list[Model]`,
 defaults, optionality. pydantic already does all of it correctly and is
 already a dependency. `tests/test_registry.py::test_complex_types_survive`
 passes a `Literal`, an optional union and a nested model through in one
@@ -24,9 +22,7 @@ signature; none of that needed code here.
 accepted by both providers, but it does mean the schema is not always a flat
 object.
 
----
-
-## 2026-08-22 — Function-local types in tool signatures: raise clearly vs support them
+## 2026-08-22. Function-local types in tool signatures: raise clearly vs support them
 
 **Chose:** detect the `NameError` from `get_type_hints` and re-raise with a
 message naming the cause and the fix.
@@ -36,15 +32,13 @@ function-local classes resolvable.
 
 **Why:** frame inspection to reach a caller's locals is exactly the kind of
 clever code that is impossible to explain at a whiteboard, and it would only
-paper over a design smell — a tool whose argument type is not importable is a
+paper over a design smell: a tool whose argument type is not importable is a
 tool nothing else can construct arguments for. Found while writing
 `test_complex_types_survive`, which originally defined its model inside the
 test and failed with a bare `NameError: name 'Filter' is not defined` that
 pointed nowhere near the cause.
 
----
-
-## 2026-08-22 — Compaction cut points: settled boundaries vs a fixed message offset
+## 2026-08-22. Compaction cut points: settled boundaries vs a fixed message offset
 
 **Chose:** compute every index where all tool calls raised so far have been
 answered (`settled_boundaries`), and cut at the largest such index that
@@ -59,9 +53,7 @@ scan is about fifteen lines and turns a heisenbug into a structural guarantee.
 When no safe boundary exists in range, the compactor declines to compact:
 an oversized transcript is recoverable, a corrupted one is not.
 
----
-
-## 2026-08-22 — Token counting: per-script ratios vs one character heuristic
+## 2026-08-22. Token counting: per-script ratios vs one character heuristic
 
 **Chose:** the provider's own counter first (Anthropic's `count_tokens`
 endpoint, `tiktoken` for OpenAI), falling back to a heuristic that counts
@@ -75,13 +67,11 @@ calibrated on English under-estimates an Arabic transcript badly enough that
 compaction never triggers before the window is blown. Since repo 02's corpus
 is Arabic, this is not a hypothetical. `CHARS_PER_TOKEN_ARABIC = 2.0` and
 `CHARS_PER_TOKEN_LATIN = 4.0` are starting values, **not yet calibrated
-against real usage counts** — `scripts/calibrate_tokens.py` does that and needs
+against real usage counts**, `scripts/calibrate_tokens.py` does that and needs
 an API key. Until then the heuristic is deliberately the pessimistic estimate,
 so an unmeasured error compacts early rather than late.
 
----
-
-## 2026-08-22 — Resume: re-run orphaned tool calls vs report unknown outcome
+## 2026-08-22. Resume: re-run orphaned tool calls vs report unknown outcome
 
 **Chose:** journal a `tool_call_started` record with the tool's idempotency
 flag *before* executing. On resume, an orphaned call (started, no result) is
@@ -96,14 +86,12 @@ knows which it is, so the flag belongs on the tool.
 
 **Measured** in `tests/test_crash_resume.py` across ten kill points: six land
 mid-`record` (non-idempotent, side effect already applied, result never
-journalled — the dangerous case) and four land mid-`peek` (idempotent). All
+journalled: the dangerous case) and four land mid-`peek` (idempotent). All
 ten resume with no repeated side effect, and the four idempotent orphans are
 re-run exactly once, which is what stops the test from being satisfied by a
 resume that does nothing.
 
----
-
-## 2026-08-22 — Crash testing: real process kill vs mocked exception
+## 2026-08-22. Crash testing: real process kill vs mocked exception
 
 **Chose:** spawn a real subprocess and `Popen.kill()` it (SIGKILL on POSIX,
 TerminateProcess on Windows) at four different delays.
@@ -117,9 +105,7 @@ only an uncatchable kill tests that. Confirmed by instrumenting the journal
 after each kill: the ten delays produce six non-idempotent orphans and four
 idempotent ones, rather than all landing at the same point.
 
----
-
-## 2026-08-22 — Tool failures: error results vs raised exceptions
+## 2026-08-22. Tool failures: error results vs raised exceptions
 
 **Chose:** every tool exception becomes a `tool_result` with `is_error=True`
 carrying the exception message. Runs abort only after N *consecutive*
@@ -138,9 +124,7 @@ This is also the one place in the package with a broad `except Exception`. It
 is deliberate and commented: a tool is arbitrary user code, and any exception
 it raises is information for the model rather than a reason to end the run.
 
----
-
-## 2026-08-22 — Per-tool timeouts: ThreadPoolExecutor vs signal.alarm
+## 2026-08-22, Per-tool timeouts: ThreadPoolExecutor vs signal.alarm
 
 **Chose:** submit each tool to a single-worker `ThreadPoolExecutor` and use
 `future.result(timeout=...)`.
@@ -158,9 +142,7 @@ immediately, so the loop is unblocked. Tools doing real I/O set their own
 socket timeouts, and `run_python` enforces its limit in Docker where the
 process *can* be killed.
 
----
-
-## 2026-08-22 — Sandbox: Docker only, with no host-Python fallback
+## 2026-08-22. Sandbox: Docker only, with no host-Python fallback
 
 **Chose:** `run_python` raises a clear `SandboxError` when Docker is
 unavailable, and the CLI simply does not register the tool.
@@ -168,7 +150,7 @@ unavailable, and the CLI simply does not register the tool.
 **Rejected:** falling back to `subprocess` on the host when Docker is missing.
 
 **Why:** the fallback would silently execute model-written code on the
-developer's machine — precisely the thing the sandbox exists to prevent — and
+developer's machine, precisely the thing the sandbox exists to prevent, and
 it would do so exactly when the operator was least expecting isolation. A
 missing tool is a visible limitation; a silent fallback is a vulnerability.
 
@@ -176,9 +158,7 @@ Note `--pids-limit`, plural. `--pid-limit` is not a Docker flag; a script that
 does not check exit codes will appear to apply a process limit that is not
 there.
 
----
-
-## 2026-08-22 — Model IDs and prices in config.yaml
+## 2026-08-22. Model IDs and prices in config.yaml
 
 **Chose:** `models:` and `pricing:` blocks in `config.yaml`, with the date they
 were checked in a comment at the top of the file.
@@ -190,9 +170,7 @@ how a cost number in a README silently becomes wrong. One file, one date, one
 place to re-check. Checked 2026-08-22 against the Anthropic model docs and
 `developers.openai.com/api/docs/pricing`.
 
----
-
-## 2026-08-22 — Answer model Sonnet, judge model Opus
+## 2026-08-22. Answer model Sonnet, judge model Opus
 
 **Chose:** `default: claude-sonnet-5`, `strong: claude-opus-5`,
 `compare: gpt-5.6-terra`.
@@ -208,9 +186,7 @@ which is the right way round. `gpt-5.6-terra` is the OpenAI comparison model:
 mid-tier pricing, so a full cross-provider benchmark run does not cost more
 than the thing it is measuring.
 
----
-
-## 2026-08-22 — Benchmark verdict: check.sh only, never the agent's claim
+## 2026-08-22. Benchmark verdict: check.sh only, never the agent's claim
 
 **Chose:** `run_benchmark.py` copies each task to a scratch directory, lets the
 agent work, then runs the task's own test suite for the verdict.
@@ -226,9 +202,7 @@ does not care what the agent claims.
 originals stay broken. A task that already passes measures nothing. All ten
 verified 2026-08-22.
 
----
-
-## 2026-08-22 — A `--dry-run` benchmark mode that writes to a different file
+## 2026-08-22: A `--dry-run` benchmark mode that writes to a different file
 
 **Chose:** `--dry-run` exercises the whole harness with no API calls and writes
 `benchmark/results.dry-run.json`, which is gitignored.
@@ -238,9 +212,7 @@ produces a 0-of-10 table, and a 0-of-10 table sitting in `results.json` is
 indistinguishable from a measured catastrophe. Different filename, gitignored,
 and a `"dry_run": true` field inside.
 
----
-
-## 2026-08-22 — Medians over solved attempts return None, not 0.0
+## 2026-08-22. Medians over solved attempts return None, not 0.0
 
 **Chose:** `median()` returns `None` for an empty list, and the table renders
 `n/a`.
@@ -251,9 +223,7 @@ and a `"dry_run": true` field inside.
 as "free", which is the opposite of the truth. This is the smallest possible
 instance of the never-invent-a-metric rule.
 
----
-
-## 2026-08-22 — No sampling parameters sent to Anthropic
+## 2026-08-22, No sampling parameters sent to Anthropic
 
 **Chose:** the Anthropic adapter never sends `temperature`, `top_p` or `top_k`.
 
@@ -261,9 +231,7 @@ instance of the never-invent-a-metric rule.
 now rejected with a 400. Code that sets `temperature=0` out of habit fails on
 every current model.
 
----
-
-## 2026-08-22 — Assistant turns are replayed from raw provider blocks
+## 2026-08-22. Assistant turns are replayed from raw provider blocks
 
 **Chose:** `Completion.raw_blocks` keeps the provider's own content blocks, and
 `to_message()` replays them verbatim when present.
@@ -274,13 +242,11 @@ every current model.
 back unchanged when the conversation continues on the same model. Rebuilding
 from the parsed fields silently drops them.
 
----
-
-## 2026-08-22 — Environment deviations from the spec
+## 2026-08-22. Environment deviations from the spec
 
 Recorded because they affect what this repo can currently prove.
 
-- **No `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in the environment**, though the
+- **No `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` in the environment**: though the
   spec states both are available. Every number the benchmark would produce is
   therefore `TBD`. The code, the tests and the harness are complete and the
   benchmark runs end to end in `--dry-run`; it needs only a key. No metric has
@@ -291,12 +257,10 @@ Recorded because they affect what this repo can currently prove.
 - **Docker Desktop's Linux engine could not be started.** Diagnosis and the
   exact errors are in the dedicated entry below.
 
-- **Hardware is an RTX 3060 Ti with 8 GB VRAM**, which selects the `cuda_small`
+- **Hardware is an RTX 3060 Ti with 8 GB VRAM**: which selects the `cuda_small`
   profile in repos 02 and 04.
 
----
-
-## 2026-08-22 — Commit count: 10 substantive commits, not 30 padded ones
+## 2026-08-22. Commit count: 10 substantive commits, not 30 padded ones
 
 **Chose:** commit at each working increment, which produced 10 commits for this
 repo.
@@ -305,18 +269,16 @@ repo.
 "at least 30 commits" rule.
 
 **Why:** the rule exists so the history reads as someone working rather than as
-one squashed dump, and 10 commits with real messages already do that — each is
+one squashed dump, and 10 commits with real messages already do that, each is
 a working state that passes its tests. Slicing them finer after the fact would
 be manufacturing a timeline rather than recording one, which is the same class
 of dishonesty as inventing a metric.
 
 **This is a stated miss against the spec, not a silent one.** The later repos
-commit at finer granularity — module plus its tests — which reaches the range
+commit at finer granularity, module plus its tests, which reaches the range
 naturally for a repo of repo 02's size.
 
----
-
-## 2026-08-22 — Sandbox isolation: measured, and what it cost to get there
+## 2026-08-22. Sandbox isolation: measured, and what it cost to get there
 
 **State: all ten isolation properties are verified on this machine.**
 `make test-integration` → **10 passed**. Full suite → **104 passed**.
@@ -385,7 +347,7 @@ and saved a 659 MB download, an uninstall/reinstall cycle, and two elevation
 prompts. The general lesson, which generalises past Docker: *when a
 virtualization stack fails to start, check the firmware capability bit before
 touching the software stack.* An earlier diagnosis in this file predicted "a
-reboot should fix it" — that was wrong, and it is left recorded rather than
+reboot should fix it", that was wrong, and it is left recorded rather than
 quietly corrected.
 
 Useful detail for anyone hitting this: `wsl --install --no-distribution`
@@ -393,7 +355,7 @@ returns *"The operation completed successfully"* even when virtualization is
 disabled in firmware and no VM can actually boot. It is not a health check.
 
 Also note `systeminfo` stops printing the *"Hyper-V Requirements"* block once a
-hypervisor is running — it prints *"A hypervisor has been detected"* instead. So
+hypervisor is running, it prints *"A hypervisor has been detected"* instead. So
 the absence of that block after the fix is itself confirmation.
 
 ### Marker choice
@@ -410,10 +372,10 @@ must raise rather than fall back to host Python when Docker is missing. That is
 the property whose failure would be *dangerous* rather than merely unproven, so
 it must not hide behind infrastructure that might be absent.
 
-## 2026-08-23 — `reasoning_effort` is per model, and omitted unless configured
+## 2026-08-23, `reasoning_effort` is per model, and omitted unless configured
 
-**What happened:** running the benchmark against `gpt-5.6-terra` — the
-cross-provider comparison model this repo has always declared — failed on the
+**What happened:** running the benchmark against `gpt-5.6-terra`, the
+cross-provider comparison model this repo has always declared, failed on the
 first model call:
 
 ```
@@ -433,7 +395,7 @@ threaded through `build_provider` as a keyword with a `None` default, and
 
 **Why per model and not a constant.** It is a property of the model, not of
 this repo. `claude-*` does not take the parameter, and older OpenAI models
-reject it outright — so the only safe default is not to send it.
+reject it outright, so the only safe default is not to send it.
 
 **Why a keyword with a default:** every existing `build_provider(provider, id)`
 call site keeps working, and the three that hold a `ModelSpec` now pass the

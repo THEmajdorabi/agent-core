@@ -1,14 +1,14 @@
 """Kill the process mid-run, resume, and check nothing ran twice.
 
 This spawns a real subprocess and kills it uncatchably (SIGKILL on POSIX,
-TerminateProcess on Windows -- `Popen.kill()` is both). A try/finally cleanup
+TerminateProcess on Windows, `Popen.kill()` is both). A try/finally cleanup
 path would not be exercised by anything gentler, and the whole point is that
 the journal survives a process that got no chance to tidy up.
 
 The kill happens at ten different delays, so the interruption lands at ten
 different points in the loop rather than always at the same one. Roughly half
 land mid-`record`, where the side effect has already happened but its result
-was never journalled -- the case the idempotency rule exists for.
+was never journalled: the case the idempotency rule exists for.
 """
 
 from __future__ import annotations

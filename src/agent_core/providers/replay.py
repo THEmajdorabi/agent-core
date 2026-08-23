@@ -117,7 +117,7 @@ class RecordingProvider:
     """Wraps a live provider and writes each completion to a fixture file.
 
     Used once, by hand, to capture a fixture. Never used in the default test
-    run -- it makes real, billable calls.
+    run, it makes real, billable calls.
     """
 
     def __init__(self, inner: Provider, fixture_path: str | Path) -> None:

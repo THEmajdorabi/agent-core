@@ -7,7 +7,7 @@ produces. The three differences that matter:
   * Tool calls arrive as `message.tool_calls`, with arguments as a JSON
     *string* that must be parsed.
   * Results go back as separate messages with `role="tool"` and a
-    `tool_call_id` -- not as blocks inside a user message.
+    `tool_call_id`, not as blocks inside a user message.
 
 That last one is why `_to_wire` fans a single tool-result message out into
 several messages.

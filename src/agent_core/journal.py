@@ -7,7 +7,7 @@ loses at most one step.
 The subtle part is not writing the journal, it is replaying it. A tool call
 that was *started* but whose result was never journalled has unknown outcome.
 Re-running it is only safe when the tool said it was idempotent. Otherwise the
-honest thing -- and what this module does -- is to hand the model a failed
+honest thing, and what this module does, is to hand the model a failed
 tool_result explaining that the outcome is unknown, and let it decide. Silently
 re-running a non-idempotent side effect is the exact bug this design exists to
 prevent.

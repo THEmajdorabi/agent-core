@@ -7,7 +7,7 @@ cut, and this module spends most of its length on that.
 A `tool_use` block and its matching `tool_result` must stay together. Cutting
 between them leaves the model an unanswered tool call, which the API rejects,
 or an orphan result referring to a call that no longer exists. So compaction
-never cuts at an arbitrary message index -- it cuts only at a *settled*
+never cuts at an arbitrary message index, it cuts only at a *settled*
 boundary, where every tool call raised so far has already been answered.
 """
 
@@ -29,7 +29,7 @@ You are compacting the transcript of an agent run so it fits in a smaller
 context window. Summarise everything below into four labelled sections:
 
 DECISIONS MADE: what was chosen and why.
-FACTS ESTABLISHED: concrete findings -- values, paths, error messages, results.
+FACTS ESTABLISHED: concrete findings, including values, paths, error messages and results.
 FILES TOUCHED: every file read or written, with what changed.
 OPEN QUESTIONS: what is still unresolved.
 

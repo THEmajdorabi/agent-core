@@ -4,8 +4,8 @@ Each task is a tiny broken repository plus a `check.sh` that exits 0 once the
 bug is fixed. Generating them from one script keeps the shape uniform and
 makes the whole set reproducible from a clean clone.
 
-The bugs are real bugs -- an off-by-one, a mutable default, a naive-datetime
-comparison -- rather than syntax errors, because "find the typo" measures
+The bugs are real bugs: an off-by-one, a mutable default, a naive-datetime
+comparison, rather than syntax errors, because "find the typo" measures
 nothing about an agent's ability to read code.
 
 Run: python scripts/make_benchmark_tasks.py
@@ -53,7 +53,7 @@ class Task:
 
 
 TASKS = [
-    # 1 -- off-by-one in a slice
+    # 1, off-by-one in a slice
     Task(
         "01_off_by_one_slice",
         "Off-by-one in a slice bound",
@@ -85,7 +85,7 @@ def test_empty_when_size_exceeds_length():
         },
         "The tests in test_solution.py fail. Fix window.py so they pass.",
     ),
-    # 2 -- wrong default argument
+    # 2, wrong default argument
     Task(
         "02_wrong_default_argument",
         "A wrong default argument breaks a test",
@@ -114,7 +114,7 @@ def test_explicit_places_still_work():
         },
         "The tests in test_solution.py fail. Fix rounding.py so they pass.",
     ),
-    # 3 -- missing edge-case branch
+    # 3, missing edge-case branch
     Task(
         "03_missing_edge_case",
         "A missing edge-case branch",
@@ -139,7 +139,7 @@ def test_mean_of_empty_is_zero():
         },
         "The tests in test_solution.py fail. Fix stats.py so they pass.",
     ),
-    # 4 -- import cycle
+    # 4, import cycle
     Task(
         "04_import_cycle",
         "An import cycle between two modules",
@@ -186,7 +186,7 @@ def test_is_user_still_works():
         "Importing these modules raises ImportError because of a circular import. "
         "Fix it so the tests in test_solution.py pass, keeping both functions working.",
     ),
-    # 5 -- exception handling swallows an error
+    # 5, exception handling swallows an error
     Task(
         "05_swallowed_exception",
         "Exception handling that swallows an error",
@@ -234,7 +234,7 @@ def test_malformed_json_raises(tmp_path):
         },
         "The tests in test_solution.py fail. Fix config_loader.py so they pass.",
     ),
-    # 6 -- implement from docstring
+    # 6, implement from docstring
     Task(
         "06_implement_from_docstring",
         "Implement a function from its docstring and tests",
@@ -279,7 +279,7 @@ def test_handles_question_and_exclamation():
         },
         "chunker.py raises NotImplementedError. Implement it so test_solution.py passes.",
     ),
-    # 7 -- regex fails on Arabic
+    # 7, regex fails on Arabic
     Task(
         "07_regex_fails_on_arabic",
         "A regex that fails on Arabic input",
@@ -324,7 +324,7 @@ def test_mixed_script_and_digits():
         "Note the test imports `tokenize_module`, so the module must be importable "
         "under that name.",
     ),
-    # 8 -- timezone bug
+    # 8, timezone bug
     Task(
         "08_timezone_bug",
         "A timezone bug in a date calculation",
@@ -359,7 +359,7 @@ def test_past_deadline_is_negative():
         "The tests in test_solution.py fail with a TypeError about naive and aware "
         "datetimes. Fix deadline.py so they pass.",
     ),
-    # 9 -- schema mismatch between modules
+    # 9, schema mismatch between modules
     Task(
         "09_schema_mismatch",
         "A JSON schema mismatch between two modules",
@@ -399,7 +399,7 @@ def test_pipeline_end_to_end():
         "so the test raises KeyError. Fix the mismatch so test_solution.py passes. "
         "Do not change the test.",
     ),
-    # 10 -- mutable default argument
+    # 10, mutable default argument
     Task(
         "10_mutable_default",
         "A mutable default argument bug",

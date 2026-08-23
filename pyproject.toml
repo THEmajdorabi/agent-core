@@ -3,6 +3,8 @@ name = "agent-core"
 version = "0.1.0"
 description = "A tool-calling agent runtime written from scratch. No LangChain, no CrewAI, no LlamaIndex."
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
     "anthropic>=0.40.0",
     "openai>=1.50.0",
@@ -37,7 +39,7 @@ packages = ["src/agent_core"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-# The benchmark tasks contain deliberate bugs -- a mutable default argument, a
+# The benchmark tasks contain deliberate bugs: a mutable default argument, a
 # swallowed exception. Linting them would flag exactly what the agent is meant
 # to find, and "fixing" them would destroy the benchmark.
 extend-exclude = ["benchmark/tasks"]

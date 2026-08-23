@@ -1,12 +1,15 @@
 # agent-core
 
-A tool-calling agent runtime written from scratch — no LangChain, no CrewAI, no LlamaIndex.
+A tool-calling agent runtime written from scratch, no LangChain, no CrewAI, no LlamaIndex.
 
 For engineers who need to know exactly what happens between a user's question and a model's final answer, because they have to debug it, budget it, or explain it.
 
 The unusual part: **a resumed run refuses to re-run a side effect whose outcome it cannot establish.** Most agent loops replay their journal and re-execute whatever was in flight. This one journals a tool call *before* running it along with the tool's own idempotency declaration, and on resume re-runs only what is safe to re-run. Everything else comes back to the model as "this started, the outcome is unknown, verify before relying on it."
 
----
+![agent-core trace tree](docs/trace.png)
+
+*Real output. `docs/trace.html` is the page it was rendered from; the run behind
+it is reproducible with the command in the header.*
 
 ## Numbers
 
@@ -43,6 +46,23 @@ Reproduce with `make benchmark`; raw data in `benchmark/results.json`.
 Every task was solved on every one of three attempts. The verdict is `check.sh`
 exiting 0, never the agent's own claim that it fixed something.
 
+### The same ten tasks, graded by somebody else
+
+[llm-eval](../llm-eval) runs these tasks through its own harness, on the other
+provider, and grades them with each task's pytest file rather than with this
+repo's code:
+
+| | claude-sonnet-5 (this repo) | gpt-5.6-terra (llm-eval) |
+|---|---|---|
+| Tasks solved | 10/10, 30/30 attempts | 10/10, 1 attempt each |
+| Pass rate, 95% CI | n/a | 1.000 **[0.723, 1.000]** (Wilson) |
+| Cost | $1.06 over 30 attempts | $0.099 over 10 |
+| p50 wall per task | 12.4 s | 10.0 s |
+
+**Ten out of ten is not 100%.** The interval is what ten cases actually support,
+and llm-eval prints it that way because a bootstrap over a unanimous result has
+zero width and would claim otherwise.
+
 ### What *is* measured
 
 | Check | Script | Result |
@@ -54,13 +74,11 @@ exiting 0, never the agent's own claim that it fixed something.
 | Sandbox isolation, incl. an enforced 512 MiB cap | [`tests/test_sandbox.py`](tests/test_sandbox.py) | 10 / 10 (`make test-integration`) |
 
 The crash test spawns a real subprocess and kills it uncatchably at ten
-different delays. **Six of the ten land mid-side-effect** — the dangerous case
+different delays. **Six of the ten land mid-side-effect**: the dangerous case
 where the write already happened but its result was never journalled. All ten
 resume without repeating a side effect, and the four that orphan an
 *idempotent* call do re-run it, so the test cannot be passed by a resume that
 simply refuses to do anything.
-
----
 
 ## What it does
 
@@ -113,8 +131,6 @@ exited:
 uv run agent-core trace <run_id>
 ```
 
----
-
 ## Quick start
 
 ```bash
@@ -143,17 +159,15 @@ Re-render a past run's trace:
 uv run agent-core trace <run_id>
 ```
 
-Without `make`, every target is a one-liner — see the [Makefile](Makefile). For example:
+Without `make`, every target is a one-liner: see the [Makefile](Makefile). For example:
 
 ```bash
 uv run pytest -q
 ```
 
----
-
 ## The parts worth reading
 
-### `registry.py` — schemas you never write
+### `registry.py`: schemas you never write
 
 A tool is a plain function. The decorator builds a pydantic model from its
 signature and calls `.model_json_schema()`, so unions, `Literal`, `Enum`,
@@ -170,10 +184,10 @@ Registration fails loudly if the docstring is missing, because the docstring
 *is* the description the model uses to decide when to call the tool.
 `Annotated[str, "..."]` documents individual parameters.
 
-### `journal.py` + `agent.py` — resume without repeating yourself
+### `journal.py` + `agent.py`: resume without repeating yourself
 
-Each tool call is journalled as `tool_call_started` — carrying the tool's
-`idempotent` flag — *before* it executes. On resume:
+Each tool call is journalled as `tool_call_started`, carrying the tool's
+`idempotent` flag, *before* it executes. On resume:
 
 | State in the journal | What resume does |
 |---|---|
@@ -184,7 +198,7 @@ Each tool call is journalled as `tool_call_started` — carrying the tool's
 That third row is the whole point. Silently re-running a non-idempotent side
 effect is the bug this design exists to prevent.
 
-### `context.py` — compaction that cannot corrupt a transcript
+### `context.py`: compaction that cannot corrupt a transcript
 
 Compaction summarises old turns when the transcript passes a fraction of the
 window. The hard part is *where* it is allowed to cut. A `tool_use` block
@@ -193,8 +207,8 @@ later.
 
 So `settled_boundaries()` returns only the indices where every tool call
 raised so far has been answered, and the compactor cuts at one of those or
-declines to cut at all. Pinned facts — recorded by the agent through a
-`pin_fact` tool — are re-injected verbatim after every pass.
+declines to cut at all. Pinned facts, recorded by the agent through a
+`pin_fact` tool, are re-injected verbatim after every pass.
 
 Token counting uses the provider's own counter (Anthropic's `count_tokens`
 endpoint, `tiktoken` for OpenAI). The fallback heuristic counts Arabic and
@@ -202,7 +216,7 @@ Latin characters at **different** chars-per-token ratios, because a ratio
 calibrated on English under-estimates an Arabic transcript badly enough to
 blow the window before compaction ever fires.
 
-### `tools/python_sandbox.py` — isolation that is checked, not claimed
+### `tools/python_sandbox.py`: isolation that is checked, not claimed
 
 Model-written Python runs in Docker with `--network none`, `--memory 512m`,
 `--cpus 1`, `--read-only`, `--pids-limit 128` and a non-root user.
@@ -240,7 +254,7 @@ make test-integration   # 10 passed  (needs a Docker daemon)
 pytest -q -m ""         # 104 passed (everything)
 ```
 
-Getting here needed three fixes on the build machine — a missing WSL 2 kernel,
+Getting here needed three fixes on the build machine: a missing WSL 2 kernel,
 a bad Docker Desktop install, and, the actual blocker, **hardware
 virtualization disabled in firmware**. That last one is in
 [`DECISIONS.md`](DECISIONS.md) along with the diagnostic mistake that made it
@@ -249,8 +263,6 @@ take longer than it should have.
 There is **no host-Python fallback**. If Docker is missing, `run_python` is not
 registered and calling it raises. A sandbox that quietly stops sandboxing is
 worse than one that is plainly unavailable.
-
----
 
 ## The benchmark
 
@@ -274,7 +286,7 @@ The verdict comes from `check.sh`, never from the agent's own claim that it
 fixed something.
 
 `scripts/verify_benchmark_tasks.py` closes the other end, proving each task
-**fails** unfixed and **passes** with a reference fix — on a copy, so the
+**fails** unfixed and **passes** with a reference fix, on a copy, so the
 originals stay broken. A task that already passes measures nothing.
 
 ```bash
@@ -282,8 +294,6 @@ make verify-tasks     # 10/10 broken-then-solvable
 make benchmark-dry    # exercise the harness with no API calls
 make benchmark        # the real numbers; needs a key
 ```
-
----
 
 ## Configuration
 
@@ -294,18 +304,30 @@ a price change is a one-line edit rather than a hunt.
 Secrets come from the environment only, via `python-dotenv`. `.env` has been
 gitignored since the first commit.
 
----
+## What is not verified
+
+Stated here rather than discovered by a reviewer.
+
+- **The token heuristic is uncalibrated.** `CHARS_PER_TOKEN_ARABIC = 2.0` and
+  `CHARS_PER_TOKEN_LATIN = 4.0` are reasoned starting values, not measured
+  ones. `scripts/calibrate_tokens.py` measures them against Anthropic's
+  `count_tokens` endpoint, which is not billed but is gated on account
+  balance, and this account's ran out. The script is written and has never
+  produced a number.
+- **One attempt per task on the cross-provider run.** The `claude-sonnet-5`
+  column is 3 repeats per task; the `gpt-5.6-terra` column is 1. They are not
+  equally strong evidence and the table does not pretend they are.
+- **The benchmark is ten tasks written by the same person who wrote the agent.**
+  `scripts/verify_benchmark_tasks.py` proves each is genuinely broken and
+  genuinely solvable, which rules out the worst version of that problem and not
+  the general one: these are the bugs I thought to write.
 
 ## Known limits
 
-Stated here rather than discovered by a reviewer:
-
-- **No live benchmark numbers yet.** No API key in the build environment. The
-  harness runs end to end in `--dry-run`.
 - **A timed-out tool leaks its thread.** Python cannot interrupt arbitrary
   running code. The loop is unblocked immediately and the model gets its
   timeout result, but the worker runs to completion in the background.
-  `run_python` does not have this problem — Docker can kill a process.
+  `run_python` does not have this problem. Docker can kill a process.
 - **Compaction may decline to compact.** When no settled boundary exists inside
   the allowed range, the transcript is left alone. Correct, but it means
   compaction is not a guarantee against overflow.
@@ -315,7 +337,26 @@ Stated here rather than discovered by a reviewer:
 - **`docker-compose.yml` mounts the Docker socket**, which grants the container
   root-equivalent access to the host. Fine for a local demo, not for production.
 
+## Reproducing every number
+
+Nothing in this README is quoted from memory. Each row names the command and
+the file the number is read out of.
+
+| Number | Command | Raw data |
+|---|---|---|
+| Solve rate, steps, cost, wall | `make benchmark` | `benchmark/results.json` |
+| Cross-provider solve rate | `llm-eval run suites/agent_core.yaml` (in repo 03) | `llm-eval/reports/agent_core-latest.json` |
+| Test counts | `make test` and `make test-integration` | stdout |
+| Sandbox isolation properties | `make test-integration` | `tests/test_sandbox.py` |
+| Tasks are broken and solvable | `make verify-tasks` | stdout |
+| Resume after a forced kill | `make test` (journal tests) | `tests/test_journal.py` |
+| The trace screenshot | the command in its header, then `docs/trace.html` | `docs/trace.png` |
+
+`make benchmark` costs about $1 and needs `ANTHROPIC_API_KEY`. Everything else
+is free and needs no key, except the cross-provider row, which needs
+`OPENAI_API_KEY` and costs about $0.13.
+
 ## Decisions
 
 [`DECISIONS.md`](DECISIONS.md) records each significant choice, the alternative
-rejected, and why — including the ones that were rejected after being tried.
+rejected, and why, including the ones that were rejected after being tried.

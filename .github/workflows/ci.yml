@@ -45,7 +45,7 @@ jobs:
 
       # ubuntu-latest has a working Docker daemon, so the sandbox integration
       # tests run for real here. This is the only place the isolation claims
-      # are actually verified -- see DECISIONS.md.
+      # are actually verified: see DECISIONS.md.
       - name: Sandbox integration tests
         run: pytest -q -m integration
 

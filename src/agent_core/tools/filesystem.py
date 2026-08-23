@@ -26,7 +26,7 @@ class PathJail:
         """Resolve `relative` inside the jail, or raise ValueError.
 
         `Path.resolve()` follows symlinks, so a link pointing outside the root
-        resolves to its target and fails the containment check -- which is the
+        resolves to its target and fails the containment check, which is the
         behaviour we want.
         """
         candidate = (self.root / relative).resolve()

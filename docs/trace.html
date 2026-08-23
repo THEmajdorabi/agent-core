@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>agent-core trace</title>
+<style>
+  body { margin:0; background:#0d1117; font-family:"Cascadia Mono","Consolas","DejaVu Sans Mono",monospace; }
+  .frame { max-width: 1220px; margin: 28px auto; border-radius: 10px; overflow:hidden;
+           box-shadow: 0 10px 40px rgba(0,0,0,.6); border:1px solid #30363d; }
+  .bar { background:#161b22; padding:9px 14px; display:flex; align-items:center; gap:8px;
+         border-bottom:1px solid #30363d; }
+  .dot { width:12px; height:12px; border-radius:50%; }
+  .title { color:#8b949e; font-size:12px; margin-left:8px; }
+  pre { margin:0; padding:20px 22px; color:#c9d1d9; font-size:13.5px; line-height:1.55;
+        white-space:pre-wrap; overflow-x:auto; word-break:break-word; }
+  .cmd { color:#7ee787; }
+</style></head><body>
+<div class="frame">
+  <div class="bar">
+    <span class="dot" style="background:#ff5f57"></span>
+    <span class="dot" style="background:#febc2e"></span>
+    <span class="dot" style="background:#28c840"></span>
+    <span class="title">agent-core &mdash; trace tree</span>
+  </div>
+  <pre><span class="cmd">$ agent-core run "Fix the source so the tests pass." --workdir ./task --model compare --allow-shell</span>
+
+run 423bf9d3  goal=&#x27;The tests in test_solution.py fail. Fix the source so they pass.&#x27;  5 steps  7 tool calls  $0.0129  20.1s
+├─ model_call         530 in / 13 out
+├─ tool: list_dir     0.00s  ok
+├─ model_call         571 in / 82 out
+├─ tool: read_file    0.00s  ok
+├─ tool: read_file    0.00s  ok
+├─ tool: read_file    0.00s  ok
+├─ tool: read_file    0.00s  ok
+├─ model_call         1,021 in / 156 out
+├─ tool: write_file   0.00s  ok
+├─ model_call         1,197 in / 25 out
+├─ tool: run_command  0.42s  ok
+├─ model_call         1,256 in / 40 out
+└─ final              &#x27;Updated `tokenize_module.py` to use a Unicode-aware regex...&#x27;
+
+Updated `tokenize_module.py` to use a Unicode-aware regex that recognizes alphabetic words across scripts, including Arabic, while excluding digits and punctuation.
+
+Tests pass: `3 passed`.
+
+run_id: 423bf9d30e3e40168dd05c121bcf75d9  stop in 5 steps, 7 tool calls (0 failed), $0.0129, 20.1s</pre>
+</div>
+</body></html>
